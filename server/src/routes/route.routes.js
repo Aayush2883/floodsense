@@ -35,7 +35,8 @@ r.get('/camp', requireAuth, async (req, res) => {
 r.get('/safe', requireAuth, async (req, res) => {
   try {
     const { fromLat, fromLng, toLat, toLng } = req.query;
-    const route = await findRoute(Number(fromLat), Number(fromLng), Number(toLat), Number(toLng));
+        const avoidFlooded = req.query.avoid !== 'false';
+    const route = await findRoute(Number(fromLat), Number(fromLng), Number(toLat), Number(toLng), { avoidFlooded });
 
     if (route.error === 'no-route-found') {
       return res.json({ status: 'no-safe-route', message: 'No flood-free route exists between these points.' });

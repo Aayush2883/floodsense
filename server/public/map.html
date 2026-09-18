@@ -1,0 +1,258 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>FloodSense — Patna</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+<style>
+  :root { --bg:#0b1220; --panel:#111a2e; --line:#1f2b45; --text:#e6edf7;
+          --muted:#8fa3c4; --danger:#e11d48; --safe:#22c55e; --accent:#38bdf8; }
+  * { box-sizing:border-box; }
+  html,body { margin:0; height:100%; background:var(--bg); color:var(--text);
+    font:14px/1.5 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif; }
+  #map { position:absolute; inset:0; background:var(--bg); }
+  .panel { position:absolute; top:12px; left:12px; width:340px;
+    max-height:calc(100% - 24px); overflow:auto; z-index:1000;
+    background:rgba(17,26,46,.96); border:1px solid var(--line);
+    border-radius:12px; padding:16px; }
+  h1 { margin:0; font-size:18px; letter-spacing:.2px; }
+  .sub { color:var(--muted); font-size:12px; margin:2px 0 14px; }
+  label { display:block; font-size:12px; color:var(--muted); margin:12px 0 5px; }
+  select, textarea { width:100%; background:#0d1526; color:var(--text);
+    border:1px solid var(--line); border-radius:7px; padding:8px; font:inherit; }
+  textarea { resize:vertical; min-height:70px; }
+  button { width:100%; margin-top:8px; padding:10px; border:0; border-radius:7px;
+    background:var(--accent); color:#05121f; font-weight:650; cursor:pointer; }
+  button.ghost { background:#1c2942; color:var(--text); }
+  button:disabled { opacity:.45; cursor:default; }
+  .row { display:flex; gap:8px; }
+  .stat { background:#0d1526; border:1px solid var(--line);
+    border-radius:9px; padding:11px; margin-top:10px; }
+  .big { font-size:26px; font-weight:750; line-height:1.1; }
+  .danger { color:var(--danger); } .safe { color:var(--safe); }
+  .k { color:var(--muted); font-size:12px; }
+  .badge { display:inline-block; padding:2px 9px; border-radius:99px;
+    font-size:11px; font-weight:700; color:#fff; background:var(--danger); }
+  .err { color:var(--danger); font-size:12px; margin-top:8px; }
+  .leaflet-container { background:#0b1220; }
+</style>
+</head>
+<body>
+<div id="map"></div>
+
+<div class="panel">
+  <h1>FloodSense</h1>
+  <div class="sub">Patna · flood-aware evacuation routing</div>
+
+  <label>Citizen report</label>
+  <textarea id="text">Gandhi Maidan Patna ke paas paani chest tak aa gaya hai, log phase hue hain</textarea>
+  <select id="lang">
+    <option value="hi-IN">Hindi</option>
+    <option value="en-IN">English</option>
+  </select>
+  <button id="send">Send report to Bedrock</button>
+  <div id="extract"></div>
+
+  <label>Destination</label>
+  <select id="dest"></select>
+  <button id="route">Route me to safety</button>
+
+  <div class="row">
+    <button class="ghost" id="refresh">Refresh floods</button>
+    <button class="ghost" id="clear">Clear floods</button>
+  </div>
+
+  <div id="stats"></div>
+  <div class="err" id="err"></div>
+  <div class="k" style="margin-top:12px">Drag the blue marker to move the citizen.</div>
+</div>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="/socket.io/socket.io.js"></script>
+<script>
+const CAMPS = [
+  { name:'Gandhi Maidan Relief Camp',    lat:25.6127, lng:85.1436 },
+  { name:'Rajendra Nagar Community Hall',lat:25.6082, lng:85.1573 },
+  { name:'Patna Junction Shelter',       lat:25.6015, lng:85.1376 },
+  { name:'Kankarbagh Govt School',       lat:25.5941, lng:85.1621 },
+  { name:'Boring Road Relief Point',     lat:25.6205, lng:85.1192 },
+];
+
+const map = L.map('map').setView([25.6100, 85.1400], 14);
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
+  { maxZoom:19, attribution:'&copy; OpenStreetMap' }).addTo(map);
+
+const me = L.marker([25.6205, 85.1192], { draggable:true }).addTo(map)
+  .bindPopup('Citizen — drag me');
+CAMPS.forEach(c => L.circleMarker([c.lat, c.lng],
+  { radius:7, color:'#38bdf8', fillColor:'#38bdf8', fillOpacity:.9 })
+  .addTo(map).bindPopup(c.name));
+
+const dest = document.getElementById('dest');
+dest.innerHTML = '<option value="auto">Nearest camp (automatic)</option>' +
+  CAMPS.map((c,i) => `<option value="${i}"${i===3?' selected':''}>${c.name}</option>`).join('');
+
+let floodLayer = L.layerGroup().addTo(map);
+let routeLayer = L.layerGroup().addTo(map);
+let floodKeys  = new Set();
+let token = null;
+
+const $ = id => document.getElementById(id);
+const setErr = m => $('err').textContent = m || '';
+const key = (aLat,aLng,bLat,bLng) =>
+  [`${(+aLat).toFixed(5)},${(+aLng).toFixed(5)}`,
+   `${(+bLat).toFixed(5)},${(+bLng).toFixed(5)}`].sort().join('|');
+
+async function ensureToken() {
+  if (token) return token;
+  const saved = localStorage.getItem('fs_token');
+  if (saved) return (token = saved);
+  try {
+    const r = await fetch('/api/auth/signup', {
+      method:'POST', headers:{'content-type':'application/json'},
+      body: JSON.stringify({ email:`demo${Date.now()}@floodsense.local`,
+                             password:'demo1234', name:'Demo' })
+    });
+    const b = await r.json();
+    if (!b.token) throw new Error(b.error || 'signup failed');
+    localStorage.setItem('fs_token', b.token);
+    return (token = b.token);
+  } catch (e) {
+    const manual = prompt(
+      'Auto sign-up failed (MongoDB unreachable?).\n\n' +
+      'Run:  node mint-token.js\n\nThen paste the token here:');
+    if (!manual) throw e;
+    localStorage.setItem('fs_token', manual.trim());
+    return (token = manual.trim());
+  }
+}
+
+const auth = async () => ({ Authorization: `Bearer ${await ensureToken()}`,
+                            'content-type':'application/json' });
+
+async function loadFloods() {
+  const { lat, lng } = me.getLatLng();
+  const r = await fetch(`/api/route/floods?lat=${lat}&lng=${lng}&radiusM=8000`);
+  const b = await r.json();
+  floodLayer.clearLayers();
+  floodKeys = new Set();
+  for (const s of b.segments || []) {
+    L.polyline([[s.aLat,s.aLng],[s.bLat,s.bLng]],
+      { color:'#e11d48', weight:4, opacity:.85 }).addTo(floodLayer);
+    floodKeys.add(key(s.aLat,s.aLng,s.bLat,s.bLng));
+  }
+  return b.count || 0;
+}
+
+const crossings = coords => {
+  let n = 0;
+  for (let i = 0; i < coords.length - 1; i++)
+    if (floodKeys.has(key(coords[i].lat, coords[i].lng,
+                          coords[i+1].lat, coords[i+1].lng))) n++;
+  return n;
+};
+
+async function doRoute() {
+  setErr(''); $('route').disabled = true;
+  try {
+    const h = await auth();
+    const { lat, lng } = me.getLatLng();
+    const floods = await loadFloods();
+    routeLayer.clearLayers();
+
+    let target, safe;
+    if (dest.value === 'auto') {
+      safe = await (await fetch(`/api/route/camp?lat=${lat}&lng=${lng}`, { headers:h })).json();
+      if (safe.status === 'no-safe-route') {
+        $('stats').innerHTML =
+          `<div class="stat"><div class="big danger">No safe route</div>
+           <div class="k">${safe.message}</div></div>`;
+        return;
+      }
+      target = safe.camp;
+    } else {
+      target = CAMPS[+dest.value];
+      const q = `fromLat=${lat}&fromLng=${lng}&toLat=${target.lat}&toLng=${target.lng}`;
+      safe = await (await fetch(`/api/route/safe?${q}`, { headers:h })).json();
+      if (safe.status === 'no-safe-route') {
+        $('stats').innerHTML =
+          `<div class="stat"><div class="big danger">No safe route</div>
+           <div class="k">Shelter in place and await rescue.</div></div>`;
+        return;
+      }
+    }
+    if (!safe.coords) throw new Error(safe.error || safe.status || 'no route');
+
+    const q2 = `fromLat=${lat}&fromLng=${lng}&toLat=${target.lat}&toLng=${target.lng}&avoid=false`;
+    const naive = await (await fetch(`/api/route/safe?${q2}`, { headers:h })).json();
+
+    if (naive.coords)
+      L.polyline(naive.coords.map(c => [c.lat,c.lng]),
+        { color:'#94a3b8', weight:4, dashArray:'6,7', opacity:.8 }).addTo(routeLayer);
+    L.polyline(safe.coords.map(c => [c.lat,c.lng]),
+      { color:'#22c55e', weight:6 }).addTo(routeLayer);
+    map.fitBounds(L.polyline(safe.coords.map(c => [c.lat,c.lng])).getBounds(),
+      { padding:[60,60] });
+
+    const sc = crossings(safe.coords);
+    const nc = naive.coords ? crossings(naive.coords) : 0;
+    $('stats').innerHTML = `
+      <div class="stat">
+        <div class="big safe">${sc} flooded roads</div>
+        <div class="k">crossed by our route</div>
+      </div>
+      <div class="stat">
+        <div class="big danger">${nc} flooded roads</div>
+        <div class="k">crossed by the naive route</div>
+      </div>
+      <div class="stat k">
+        ${target.name} · ${safe.distanceM} m · ${safe.hops} hops<br>
+        ${floods} flooded segments on the map
+      </div>`;
+  } catch (e) { setErr(e.message); }
+  finally { $('route').disabled = false; }
+}
+
+$('send').onclick = async () => {
+  setErr(''); $('send').disabled = true;
+  $('extract').innerHTML = '<div class="stat k">Bedrock is reading the report…</div>';
+  try {
+    const { lat, lng } = me.getLatLng();
+    const r = await fetch('/api/reports/text', {
+      method:'POST', headers: await auth(),
+      body: JSON.stringify({ text:$('text').value, lang:$('lang').value, lat, lng })
+    });
+    const b = await r.json();
+    if (!b.ok) throw new Error(b.error || 'report failed');
+    const x = b.extracted;
+    $('extract').innerHTML = `
+      <div class="stat">
+        <span class="badge">${x.severity}</span>
+        <div class="k" style="margin-top:7px">
+          ${x.waterLevelEstimate}-deep · ${x.hazardType}<br>
+          <b>${x.locationText}</b><br>
+          ${b.geocoded ? b.geocoded.label : 'not geocoded'}<br>
+          <b>${b.roadsFlooded}</b> roads flooded · ${b.latencyMs} ms
+        </div>
+      </div>`;
+    await loadFloods();
+  } catch (e) { setErr(e.message); $('extract').innerHTML = ''; }
+  finally { $('send').disabled = false; }
+};
+
+$('route').onclick = doRoute;
+$('refresh').onclick = () => loadFloods().catch(e => setErr(e.message));
+$('clear').onclick = async () => {
+  try {
+    await fetch('/api/route/floods/clear', { method:'POST', headers: await auth() });
+    routeLayer.clearLayers(); $('stats').innerHTML = ''; $('extract').innerHTML = '';
+    await loadFloods();
+  } catch (e) { setErr(e.message); }
+};
+
+try { io().on('graph:updated', () => loadFloods()); } catch (e) {}
+loadFloods();
+</script>
+</body>
+</html>

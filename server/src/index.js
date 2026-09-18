@@ -5,10 +5,12 @@ const { createServer } = require('http');
 const { Server: SocketServer } = require('socket.io');
 const { connectMongo } = require('./db/mongo');
 const authRoutes = require('./routes/auth.routes');
+const reportsRoutes = require('./routes/reports.routes');
 
 const app = express();
 app.use(cors({ origin: '*' }));
 app.use(express.json({ limit: '10mb' }));
+app.use('/api/reports', reportsRoutes);
 
 app.get('/api/health', (req, res) => {
   res.json({ ok: true, ts: Date.now(), service: 'floodsense-server' });

@@ -41,9 +41,14 @@ async function clearAllFloods() {
 async function findRoute(fromLat, fromLng, toLat, toLng, { avoidFlooded = true, maxHops = 500 } = {}) {
   const s = session();
   try {
-    const fromId = await nearestLocation(s, fromLat, fromLng);
+        const fromId = await nearestLocation(s, fromLat, fromLng);
     const toId = await nearestLocation(s, toLat, toLng);
     if (!fromId || !toId) return { error: 'no-nearby-road-node', fromId, toId };
+
+    // add these three lines
+    if (fromId === toId) {
+      return { coords: [{ lat: fromLat, lng: fromLng }], distanceM: 0, hops: 0, alreadyThere: true };
+    }
 
     const floodFilter = avoidFlooded
       ? 'WHERE ALL(rel IN relationships(p) WHERE rel.isFlooded = false)'

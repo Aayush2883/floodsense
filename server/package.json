@@ -1,17 +1,27 @@
 {
   "name": "server",
   "version": "1.0.0",
-  "main": "index.js",
-  "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
-  },
+  "main": "src/index.js",
+"scripts": {
+  "dev": "nodemon src/index.js",
+  "start": "node src/index.js"
+},
   "keywords": [],
   "author": "",
   "license": "ISC",
   "description": "",
   "dependencies": {
+    "@aws-sdk/client-bedrock-runtime": "^3.1135.0",
+    "@aws-sdk/client-dynamodb": "^3.1135.0",
+    "@aws-sdk/client-location": "^3.1135.0",
+    "@aws-sdk/client-s3": "^3.1135.0",
+    "@aws-sdk/client-sns": "^3.1135.0",
+    "@aws-sdk/client-transcribe": "^3.1135.0",
+    "@aws-sdk/lib-dynamodb": "^3.1135.0",
+    "@aws-sdk/s3-request-presigner": "^3.1135.0",
     "aws-iot-device-sdk": "^2.2.16",
     "aws-sdk": "^2.1693.0",
+    "axios": "^1.20.0",
     "bcryptjs": "^3.0.3",
     "cors": "^2.8.6",
     "dotenv": "^17.4.2",
@@ -19,6 +29,10 @@
     "jsonwebtoken": "^9.0.3",
     "mongoose": "^9.10.1",
     "neo4j-driver": "^6.2.0",
-    "socket.io": "^4.8.3"
+    "socket.io": "^4.8.3",
+    "uuid": "^14.0.2"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.14"
   }
 }

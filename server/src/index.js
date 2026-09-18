@@ -11,6 +11,7 @@ const routeRoutes = require('./routes/route.routes');
 const app = express();
 app.use(cors({ origin: '*' }));
 app.use(express.json({ limit: '10mb' }));
+app.use(express.static(require('path').join(__dirname, '..', 'public')));
 app.use('/api/reports', reportsRoutes);
 app.use('/api/route', routeRoutes);
 

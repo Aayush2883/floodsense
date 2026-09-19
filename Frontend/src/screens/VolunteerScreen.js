@@ -8,7 +8,7 @@ import { timeAgo } from '../geo';
 import { C, F } from '../theme';
 
 export default function VolunteerScreen({ navigation }) {
-  const { api, floods, reports, sensors, refresh, ensureAuth, simulateSensor, mode, lang } = useApp();
+  const { api, floods, reports, sensors, refresh, ensureAuth, simulateSensor, mode, lang, showToast } = useApp();
   const t = useT();
   const [heat, setHeat] = useState([]);
   const [busy, setBusy] = useState(null);
@@ -23,7 +23,8 @@ export default function VolunteerScreen({ navigation }) {
   function reopen() {
     confirm(t('reopenRoads'), lang === 'hi' ? 'सभी बंद सड़कें फिर से खुल जाएँगी।' : 'All closed roads will be opened again.', async () => {
       setBusy('clear');
-      try { await ensureAuth(); await api.clearFloods(); await refresh(); } catch (e) { notify('Error', e.message); } finally { setBusy(null); }
+      try { await ensureAuth(); await api.clearFloods(); await refresh(); showToast(t('roadsReopened')); }
+      catch (e) { showToast(t('errorGeneric', { e: e.message }), 'error'); } finally { setBusy(null); }
     });
   }
 

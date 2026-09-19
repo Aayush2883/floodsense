@@ -53,6 +53,8 @@ export function AppProvider({ children }) {
   const [banner, setBanner] = useState(null);
   const [updatedAt, setUpdatedAt] = useState(null);
   const [lastReport, setLastReport] = useState(null);
+  const [toast, setToast] = useState(null);
+  const [queue, setQueue] = useState([]); // reports waiting for a connection
 
   const tokenRef = useRef(null);
   tokenRef.current = session?.token ?? null;
@@ -67,6 +69,7 @@ export function AppProvider({ children }) {
       setSession(await load('fs_session', null));
       setForceDemo(await load('fs_demo', false));
       setFamily(await load('fs_family', DEMO_FAMILY));
+      setQueue(await load('fs_queue', []));
       setReady(true);
       try { setServerUp(await createLiveApi(baseUrl, () => null).health()); } catch { setServerUp(false); }
     })();
@@ -76,6 +79,14 @@ export function AppProvider({ children }) {
   const setDemo = (v) => { setForceDemo(v); save('fs_demo', v); };
   const saveSession = (s) => { setSession(s); save('fs_session', s); };
   const saveFamily = (f) => { setFamily(f); save('fs_family', f); };
+  const saveQueue = (q) => { setQueue(q); save('fs_queue', q); };
+
+  const showToast = useCallback((message, kind = 'ok') => setToast({ message, kind, ts: Date.now() }), []);
+
+  // "No signal? We keep it and send it later": reports that failed to reach the server wait here
+  const queueReport = useCallback((payload) => {
+    setQueue((q) => { const next = [...q, { ...payload, queuedAt: Date.now() }]; save('fs_queue', next); return next; });
+  }, []);
 
   // demo tokens don't work on the real server and vice versa
   const ensureAuth = useCallback(async () => {
@@ -89,8 +100,25 @@ export function AppProvider({ children }) {
   }, [api, mode, session]);
 
   // ---- data ----
+  const flushing = useRef(false);
+  const flushQueue = useCallback(async () => {
+    if (mode !== 'live' || !queue.length || flushing.current) return;
+    flushing.current = true;
+    const left = [];
+    for (const item of queue) {
+      try { await api.sendReport(item); } catch { left.push(item); }
+    }
+    flushing.current = false;
+    if (left.length < queue.length) {
+      saveQueue(left);
+      showToast(lang === 'hi' ? 'रुकी हुई सूचना भेज दी गई' : 'Waiting report sent');
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [api, mode, queue, lang, showToast]);
+
   const refresh = useCallback(async () => {
     if (mode === 'checking') return;
+    flushQueue();
     const [f, a, r, s, p] = await Promise.allSettled([
       api.getFloods(), api.getAlerts(), api.getReports(), api.getSensors(), api.getSafePlaces(me),
     ]);
@@ -105,7 +133,7 @@ export function AppProvider({ children }) {
     if (s.status === 'fulfilled') setSensors(s.value);
     if (p.status === 'fulfilled') setSafePlaces(p.value);
     setUpdatedAt(Date.now());
-  }, [api, mode, me]);
+  }, [api, mode, me, flushQueue]);
 
   useEffect(() => { refresh(); }, [refresh]);
 
@@ -157,6 +185,7 @@ export function AppProvider({ children }) {
     ready, lang, setLang, session, saveSession, ensureAuth, mode, forceDemo, setDemo, serverUp, baseUrl, api,
     me, setMe, floods, alerts, reports, sensors, safePlaces, family, saveFamily, familyStatus, nearestDanger,
     refresh, updatedAt, banner, setBanner, simulateSensor, lastReport, setLastReport,
+    toast, setToast, showToast, queue, queueReport,
   };
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
 }

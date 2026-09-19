@@ -24,13 +24,14 @@ export default function ReportResultScreen({ navigation }) {
   if (!r) return null;
   const x = r.extracted || {};
   const at = r.at || me;
-  const radius = SEVERITY[x.severity]?.radiusM || 250;
-  const d = radius / 111000;
+  // show the closed area with some streets around it, not just a red circle
+  const radius = Math.max(SEVERITY[x.severity]?.radiusM || 0, 400);
+  const d = (radius * 1.8) / 111000;
   const fit = [{ lat: at.lat - d, lng: at.lng - d }, { lat: at.lat + d, lng: at.lng + d }];
 
   return (
     <View style={{ flex: 1, backgroundColor: C.ground }}>
-      <FloodMap segments={floods.segments} zones={floods.zones} center={at} zoom={15} fitTo={fit} fitPadding={{ top: 70, bottom: 420 }} me={me} />
+      <FloodMap segments={floods.segments} zones={floods.zones} center={at} zoom={15} fitTo={fit} fitPadding={{ top: 60, bottom: 380 }} me={me} />
       <View style={[st.chip, { top: insets.top + 12 }]}>
         <Chip float icon="waves" color={C.danger} label={lang === 'hi' ? 'नक्शा अभी अपडेट हुआ' : 'Map updated just now'} />
       </View>

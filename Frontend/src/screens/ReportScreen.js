@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { Animated, Image, Platform, Pressable, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Animated, Image, Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 import DepthFigure from '../components/DepthFigure';
 import { Banner, Btn, Chip, Field, Header, Icon, Screen, Segmented, T } from '../components/ui';
@@ -14,13 +14,14 @@ function getRecognizer() {
 }
 
 export default function ReportScreen({ navigation }) {
-  const { api, me, lang, ensureAuth, refresh, setLastReport } = useApp();
+  const { api, me, lang, mode, ensureAuth, refresh, setLastReport, queue, queueReport, showToast } = useApp();
   const t = useT();
   const [modeTab, setModeTab] = useState('type');
   const [text, setText] = useState('');
   const [depth, setDepth] = useState(null);
   const [photo, setPhoto] = useState(null);
   const [busy, setBusy] = useState(false);
+  const [step, setStep] = useState(0);
   const [err, setErr] = useState('');
   const [listening, setListening] = useState(false);
   const [secs, setSecs] = useState(0);
@@ -71,19 +72,35 @@ export default function ReportScreen({ navigation }) {
     } catch (e) { setErr(e.message); }
   }
 
+  // what the server does with a report, shown while we wait: read (AI) → find the place → close roads
+  useEffect(() => {
+    if (!busy) { setStep(0); return undefined; }
+    const a = setTimeout(() => setStep(1), 1100);
+    const b = setTimeout(() => setStep(2), 2300);
+    return () => { clearTimeout(a); clearTimeout(b); };
+  }, [busy]);
+
   async function send() {
     const body = text.trim();
     if (!body) return;
     setBusy(true); setErr('');
     recRef.current?.stop();
+    const depthNote = depth ? ` (water level: ${depth === 'above-head' ? 'above head' : depth})` : '';
+    const payload = { text: body + depthNote, lang: lang === 'hi' ? 'hi-IN' : 'en-IN', lat: me.lat, lng: me.lng, depth };
     try {
       await ensureAuth();
-      const depthNote = depth ? ` (water level: ${depth === 'above-head' ? 'above head' : depth})` : '';
-      const res = await api.sendReport({ text: body + depthNote, lang: lang === 'hi' ? 'hi-IN' : 'en-IN', lat: me.lat, lng: me.lng, depth });
+      const res = await api.sendReport(payload);
       setLastReport({ ...res, text: body, at: res.geocoded || { lat: me.lat, lng: me.lng } });
       refresh();
       navigation.replace('ReportResult');
     } catch (e) {
+      // no connection: keep the report on the phone and send it later
+      if (mode === 'live' && (e.name === 'TypeError' || e.name === 'AbortError')) {
+        queueReport(payload);
+        showToast(t('queuedToast'), 'warn');
+        navigation.goBack();
+        return;
+      }
       setErr(t('errorGeneric', { e: e.message }));
     } finally { setBusy(false); }
   }
@@ -157,8 +174,20 @@ export default function ReportScreen({ navigation }) {
       </View>
 
       {err ? <Banner>{err}</Banner> : null}
-      <T v="muted" style={{ textAlign: 'center', fontSize: 12 }}>{busy ? t('sending') : t('offlineNote')}</T>
-      <Btn title={t('sendReport')} icon="send" onPress={send} loading={busy} disabled={!text.trim()} />
+      {queue.length > 0 && !busy ? <Banner kind="warn">{t('queuedCount', { n: queue.length })}</Banner> : null}
+      {busy ? (
+        <View style={st.steps} accessibilityLiveRegion="polite">
+          {['stepRead', 'stepPlace', 'stepRoads'].map((k, i) => (
+            <View key={k} style={st.stepRow}>
+              {i < step ? <Icon name="check-circle" size={20} color={C.safe} />
+                : i === step ? <ActivityIndicator size="small" color={C.river} />
+                  : <Icon name="circle-outline" size={20} color={C.line} />}
+              <Text style={[st.stepText, i > step && { color: C.muted }]}>{t(k)}</Text>
+            </View>
+          ))}
+        </View>
+      ) : <T v="muted" style={{ textAlign: 'center', fontSize: 12 }}>{t('offlineNote')}</T>}
+      <Btn title={busy ? t('sending') : t('sendReport')} icon="send" onPress={send} disabled={!text.trim() || busy} />
     </Screen>
   );
 }
@@ -173,5 +202,8 @@ const st = StyleSheet.create({
   dp: { flex: 1, alignItems: 'center', gap: 3, paddingVertical: 7, borderRadius: 12, borderWidth: 1.5, borderColor: 'transparent', backgroundColor: C.surface },
   dpOn: { borderColor: C.river, backgroundColor: C.riverSoft },
   dpText: { fontFamily: F.bodySemi, fontSize: 12, color: C.ink },
+  steps: { backgroundColor: C.surface, borderRadius: 14, borderWidth: 1, borderColor: C.line, padding: 12, gap: 10 },
+  stepRow: { flexDirection: 'row', alignItems: 'center', gap: 10, minHeight: 22 },
+  stepText: { fontFamily: F.bodySemi, fontSize: 14, color: C.ink },
   loc: { flexDirection: 'row', alignItems: 'center', gap: 10, backgroundColor: C.surface, borderRadius: 14, borderWidth: 1, borderColor: C.line, padding: 12 },
 });

@@ -8,7 +8,7 @@ import { C, F } from '../theme';
 const TYPES = ['temple', 'school', 'terrace', 'building', 'other'];
 
 export default function AddSafePlaceScreen({ navigation }) {
-  const { api, me, ensureAuth, refresh } = useApp();
+  const { api, me, ensureAuth, refresh, showToast } = useApp();
   const t = useT();
   const [name, setName] = useState('');
   const [type, setType] = useState('temple');
@@ -25,6 +25,7 @@ export default function AddSafePlaceScreen({ navigation }) {
       await ensureAuth();
       await api.addSafePlace({ name: name.trim(), type, capacity, contact: contact.trim(), notes: notes.trim(), lat: pin.lat, lng: pin.lng });
       await refresh();
+      showToast(t('safePlaceShared'));
       navigation.goBack();
     } catch (e) {
       setErr(t('errorGeneric', { e: e.message }));

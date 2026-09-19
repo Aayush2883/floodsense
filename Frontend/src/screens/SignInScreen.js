@@ -47,20 +47,22 @@ export default function SignInScreen() {
         ))}
       </View>
 
+      <Btn icon="map-outline" title={t('guestCta')} onPress={() => run('guest')} loading={busy === 'guest'} style={{ height: 58, marginTop: 6 }} />
+      <T v="muted" style={{ textAlign: 'center' }}>{t('guestSub')}</T>
+
+      <View style={st.divider}>
+        <View style={st.rule} />
+        <T v="muted">{t('orSignIn')}</T>
+        <View style={st.rule} />
+      </View>
+
       {creating && <Field label={t('name')} value={name} onChangeText={setName} autoComplete="name" />}
       <Field label={t('email')} value={email} onChangeText={setEmail} autoCapitalize="none" keyboardType="email-address" autoComplete="email" />
       <Field label={t('password')} value={password} onChangeText={setPassword} secureTextEntry autoComplete="password" onSubmitEditing={() => run('account')} />
       {err ? <Banner>{err}</Banner> : null}
-      <Btn title={creating ? t('createAccount') : t('signIn')} onPress={() => run('account')} loading={busy === 'account'} disabled={!email || !password} />
-      <Btn kind="outline" title={creating ? t('haveAccount') : t('createAccount')} onPress={() => { setCreating(!creating); setErr(''); }} />
-
-      <Pressable onPress={() => run('guest')} style={st.guest} accessibilityRole="button">
-        <Icon name="map-outline" size={24} color={C.river} />
-        <View style={{ flex: 1 }}>
-          <T v="bodyB">{t('guestTitle')}</T>
-          <T v="muted">{t('guestSub')}</T>
-        </View>
-        {busy === 'guest' ? <T v="muted">…</T> : <Icon name="chevron-right" size={24} color={C.river} />}
+      <Btn kind="outline" title={creating ? t('createAccount') : t('signIn')} onPress={() => run('account')} loading={busy === 'account'} disabled={!email || !password} />
+      <Pressable onPress={() => { setCreating(!creating); setErr(''); }} hitSlop={8} style={{ alignSelf: 'center', padding: 6 }}>
+        <Text style={st.switch}>{creating ? t('haveAccount') : t('noAccount')}</Text>
       </Pressable>
       <T v="muted" style={{ textAlign: 'center', fontSize: 12 }}>{mode === 'demo' ? 'Server offline · using demo data' : mode === 'live' ? 'Connected to FloodSense server' : 'Checking server…'}</T>
     </Screen>
@@ -75,5 +77,8 @@ const st = StyleSheet.create({
   lang: { flex: 1, height: 50, borderRadius: 14, borderWidth: 1.5, borderColor: C.line, backgroundColor: C.surface, alignItems: 'center', justifyContent: 'center' },
   langOn: { borderColor: C.river, backgroundColor: C.riverSoft },
   langText: { fontFamily: F.bodyBold, fontSize: 17, color: C.ink },
+  divider: { flexDirection: 'row', alignItems: 'center', gap: 10, marginVertical: 4 },
+  rule: { flex: 1, height: 1, backgroundColor: C.line },
+  switch: { fontFamily: F.bodyBold, fontSize: 14, color: C.river },
   guest: { marginTop: 10, flexDirection: 'row', alignItems: 'center', gap: 12, backgroundColor: '#E8F1EF', borderColor: '#CFE2DE', borderWidth: 1, borderRadius: 16, padding: 14 },
 });

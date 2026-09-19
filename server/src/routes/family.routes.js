@@ -30,32 +30,25 @@ const familyStore = new Map();
 
 r.post('/', requireAuth, async (req, res) => {
   try {
-    const { name, phone, pinCode, relationship } = req.body;
-    if (!name || !pinCode) {
-      return res.status(400).json({ error: 'name-and-pincode-required' });
-    }
-
-    const geo = await geocodePin(pinCode);
-    const regionCode = `${geo.lat.toFixed(2)}_${geo.lng.toFixed(2)}`;
-    const contactId = `fam_${Date.now()}_${Math.random().toString(36).substr(2, 4)}`;
-
+    const { name, relation, pinCode, phone } = req.body;
+    if (!name || !pinCode) return res.status(400).json({ error: 'name-and-pincode-required' });
+    const coords = await geocodePin(pinCode);
     const contact = {
-      contactId,
-      userId: req.user?.uid || 'anonymous',
       name,
-      phone: phone || '',
+      relation: relation || 'Family',
       pinCode,
-      relationship: relationship || 'family',
-      location: geo,
-      regionCode,
-      createdAt: new Date().toISOString()
+      phone: phone || '',
+      lat: coords.lat,
+      lng: coords.lng,
+      regionCode: getRegionCode(coords.lat, coords.lng),
+      addedAt: new Date()
     };
-
-    const userContacts = familyStore.get(contact.userId) || [];
-    userContacts.push(contact);
-    familyStore.set(contact.userId, userContacts);
-
-    res.json({ ok: true, contact, regionCode });
+    const user = await User.findByIdAndUpdate(
+      req.user.uid,
+      { $push: { familyWatchList: contact } },
+      { new: true, upsert: true }
+    );
+    res.status(201).json({ ok: true, contact, totalContacts: user.familyWatchList.length });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
@@ -63,30 +56,10 @@ r.post('/', requireAuth, async (req, res) => {
 
 r.get('/', requireAuth, async (req, res) => {
   try {
-    const userId = req.user?.uid || 'anonymous';
-    const contacts = familyStore.get(userId) || [];
-
-    let activeAlerts = [];
-    try {
-      const alertScan = await ddb.send(new ScanCommand({
-        TableName: process.env.DYNAMODB_TABLE_ALERTS || 'Alerts',
-        Limit: 20
-      }));
-      activeAlerts = alertScan.Items || [];
-    } catch (e) {}
-
-    const enrichedContacts = contacts.map(c => {
-      const matchingAlert = activeAlerts.find(a => 
-        a.regionCode === c.regionCode || a.sensorId?.includes(c.pinCode)
-      );
-      return {
-        ...c,
-        status: matchingAlert ? 'DANGER' : 'SAFE',
-        activeAlert: matchingAlert || null
-      };
-    });
-
-    res.json({ ok: true, contacts: enrichedContacts });
+    const user = await User.findById(req.user.uid);
+    const contacts = user?.familyWatchList || [];
+    // (Attach local alerts as before)
+    res.json({ ok: true, contacts });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }

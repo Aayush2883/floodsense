@@ -13,7 +13,7 @@ let primed = false;
 
 async function dangerReadings() {
   const out = await ddb.send(new ScanCommand({
-    TableName: process.env.DYNAMODB_TABLE_SENSOR_READINGS,
+    TableName: process.env.DDB_SENSOR_READINGS || process.env.DYNAMODB_TABLE_SENSOR_READINGS || 'SensorReadings',
     FilterExpression: '#a = :d',
     ExpressionAttributeNames: { '#a': 'alert' },
     ExpressionAttributeValues: { ':d': 'DANGER' },
@@ -40,7 +40,7 @@ async function raiseAlert(reading, io) {
   };
 
   try {
-    await ddb.send(new PutCommand({ TableName: process.env.DYNAMODB_TABLE_ALERTS, Item: alert }));
+    await ddb.send(new PutCommand({ TableName: process.env.DDB_ALERTS || process.env.DYNAMODB_TABLE_ALERTS || 'Alerts', Item: alert }));
   } catch (e) {
     console.warn('[watcher] Alerts write failed:', e.name, '-', e.message);
   }

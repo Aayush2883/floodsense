@@ -1,6 +1,7 @@
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import { Platform } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import Constants from 'expo-constants';
 import { io } from 'socket.io-client';
 import { createLiveApi, zonesFrom } from '../api/live';
 import { mockApi } from '../api/mock';
@@ -18,6 +19,9 @@ export const useT = () => {
 function defaultBaseUrl() {
   if (process.env.EXPO_PUBLIC_API_URL) return process.env.EXPO_PUBLIC_API_URL;
   if (Platform.OS === 'web' && typeof window !== 'undefined') return `${window.location.protocol}//${window.location.hostname}:4000`;
+  // Expo Go on a phone: the server runs on the same computer as Metro, so reuse that address
+  const host = Constants.expoConfig?.hostUri?.split(':')[0];
+  if (host) return `http://${host}:4000`;
   return 'http://localhost:4000';
 }
 

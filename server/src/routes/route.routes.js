@@ -12,41 +12,52 @@ const { session } = require('../db/neo4j');
 
 const r = Router();
 
-// GET /api/route/camp - Route to nearest relief camp
+// GET /api/route/camp - Route to nearest relief camp or safe place
 r.get('/camp', requireAuth, async (req, res) => {
   try {
     const lat = Number(req.query.lat);
     const lng = Number(req.query.lng);
     if (!lat || !lng) return res.status(400).json({ error: 'lat-lng-required' });
 
-    const camp = await nearestCamp(lat, lng);
-    if (!camp) return res.status(404).json({ error: 'no-camp-found' });
+    const dest = await nearestCamp(lat, lng, 50000);
+    if (!dest) {
+      return res.status(200).json({
+        ok: true,
+        noDestinationFound: true,
+        destinationKind: 'none',
+        message: 'No registered relief camps or safe places found within 50km.',
+      });
+    }
 
-    const route = await findRoute(lat, lng, camp.lat, camp.lng);
+    const route = await findRoute(lat, lng, dest.lat, dest.lng, { avoidFlooded: true });
     
     // Check if route was blocked (Shelter in place)
     if (route.error || !route.coords || route.coords.length === 0) {
       return res.status(200).json({
+        ok: true,
         shelterInPlace: true,
-        message: 'All roads to relief camp are currently flooded. Move to highest ground and shelter in place.',
-        destination: camp,
+        destinationKind: dest.kind || 'camp',
+        message: 'All roads to destination are currently flooded. Move to highest ground and shelter in place.',
+        destination: dest,
+        camp: dest,
         isFloodedAvoided: false,
         coords: []
       });
     }
 
     res.json({
-  ok: true,
-  status: 'ok',
-  camp: camp,
-  destination: camp,
-  distanceM: route.distanceM || route.distanceMeters || 0,
-  distanceMeters: route.distanceM || route.distanceMeters || 0,
-  hops: route.hops || 0,
-  isFloodedAvoided: true,
-  coords: route.coords,
-  shelterInPlace: false
-});
+      ok: true,
+      status: 'ok',
+      destinationKind: dest.kind || 'camp',
+      camp: dest,
+      destination: dest,
+      distanceM: route.distanceM || route.distanceMeters || 0,
+      distanceMeters: route.distanceM || route.distanceMeters || 0,
+      hops: route.hops || 0,
+      isFloodedAvoided: true,
+      coords: route.coords,
+      shelterInPlace: false
+    });
   } catch (e) {
     console.error('[route/camp]', e);
     res.status(500).json({ error: e.message });

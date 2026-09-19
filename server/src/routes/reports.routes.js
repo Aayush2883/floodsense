@@ -9,6 +9,7 @@ const { PutCommand, ScanCommand } = require('@aws-sdk/lib-dynamodb');
 
 const r = Router();
 
+const REPORTS_TABLE = process.env.DYNAMODB_TABLE_REPORTS || process.env.TABLE_REPORTS || 'Reports';
 const FLOOD_RADIUS = { LOW: 0, MEDIUM: 150, HIGH: 350, DANGER: 600 };
 
 function regionCode(lat, lng) {
@@ -54,7 +55,7 @@ r.post('/text', requireAuth, async (req, res) => {
     };
     let persisted = false;
     try {
-      await ddb.send(new PutCommand({ TableName: process.env.DDB_REPORTS || process.env.DYNAMODB_TABLE_REPORTS, Item: item }));
+      await ddb.send(new PutCommand({ TableName: REPORTS_TABLE, Item: item }));
       persisted = true;
     } catch (e) {
       console.warn('[reports] DynamoDB write skipped:', e.name);
@@ -71,7 +72,7 @@ r.post('/text', requireAuth, async (req, res) => {
 
 r.get('/', async (req, res) => {
   try {
-    const out = await ddb.send(new ScanCommand({ TableName: process.env.DDB_REPORTS, Limit: 100 }));
+    const out = await ddb.send(new ScanCommand({ TableName: REPORTS_TABLE, Limit: 100 }));
     const items = (out.Items || []).sort((a, b) => b.createdAt - a.createdAt);
     res.json({ count: items.length, reports: items });
   } catch (e) {

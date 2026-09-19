@@ -2,7 +2,6 @@ const { Router } = require('express');
 const { requireAuth } = require('../middleware/auth');
 const {
   findRoute,
-  findSafeRoute,
   nearestCamp,
   markRoadsFlooded,
   clearAllFloods,
@@ -23,12 +22,13 @@ r.get('/camp', requireAuth, async (req, res) => {
     if (!camp) return res.status(404).json({ error: 'no-camp-found' });
 
     const route = await findRoute(lat, lng, camp.lat, camp.lng);
-    
-    // Check if route was blocked (Shelter in place)
+
     if (route.error || !route.coords || route.coords.length === 0) {
       return res.status(200).json({
+        status: 'no-safe-route',
         shelterInPlace: true,
-        message: 'All roads to relief camp are currently flooded. Move to highest ground and shelter in place.',
+        message: 'All roads to the relief camp are flooded. Move to higher ground and shelter in place.',
+        camp,
         destination: camp,
         isFloodedAvoided: false,
         coords: []
@@ -36,24 +36,24 @@ r.get('/camp', requireAuth, async (req, res) => {
     }
 
     res.json({
-  ok: true,
-  status: 'ok',
-  camp: camp,
-  destination: camp,
-  distanceM: route.distanceM || route.distanceMeters || 0,
-  distanceMeters: route.distanceM || route.distanceMeters || 0,
-  hops: route.hops || 0,
-  isFloodedAvoided: true,
-  coords: route.coords,
-  shelterInPlace: false
-});
+      ok: true,
+      status: 'ok',
+      camp,
+      destination: camp,
+      distanceM: route.distanceM,
+      distanceMeters: route.distanceM,
+      hops: route.hops,
+      isFloodedAvoided: true,
+      coords: route.coords,
+      shelterInPlace: false
+    });
   } catch (e) {
     console.error('[route/camp]', e);
     res.status(500).json({ error: e.message });
   }
 });
 
-// GET /api/route/safe - Route from origin to arbitrary destination (used by map.html & verify-all)
+// GET /api/route/safe - Route between two points. ?avoid=false disables flood avoidance.
 r.get('/safe', requireAuth, async (req, res) => {
   try {
     const fromLat = Number(req.query.fromLat || req.query.lat);
@@ -67,19 +67,23 @@ r.get('/safe', requireAuth, async (req, res) => {
 
     const avoidFlooded = req.query.avoid !== 'false';
     const route = await findRoute(fromLat, fromLng, toLat, toLng, { avoidFlooded });
+
     if (route.error || !route.coords || route.coords.length === 0) {
       return res.status(200).json({
+        status: 'no-safe-route',
         shelterInPlace: true,
-        message: 'No safe route found avoiding floods.',
+        message: 'No flood-free route exists between these points.',
         coords: []
       });
     }
 
     res.json({
-      distanceM: route.distanceM || route.distanceMeters || 0,
-      distanceMeters: route.distanceM || route.distanceMeters || 0,
+      status: 'ok',
+      distanceM: route.distanceM,
+      distanceMeters: route.distanceM,
+      hops: route.hops,
       coords: route.coords,
-      isFloodedAvoided: true
+      isFloodedAvoided: avoidFlooded
     });
   } catch (e) {
     res.status(500).json({ error: e.message });
@@ -95,11 +99,11 @@ r.get('/safeplace', requireAuth, async (req, res) => {
   const s = session();
   try {
     const result = await s.run(
-      `MATCH (s:SafePlace)
-       WHERE (s.isFull = false OR s.isFull IS NULL)
-       RETURN s.nodeId AS id, s.name AS name, s.point.y AS lat, s.point.x AS lng,
-              s.capacity AS capacity, s.contact AS contact,
-              point.distance(s.point, point({latitude: $lat, longitude: $lng, srid: 4326})) AS dist
+      `MATCH (sp:SafePlace)
+       WHERE (sp.isFull = false OR sp.isFull IS NULL)
+       RETURN sp.nodeId AS nodeId, sp.name AS name, sp.point.y AS lat, sp.point.x AS lng,
+              sp.capacity AS capacity, sp.contact AS contact,
+              point.distance(sp.point, point({latitude: $lat, longitude: $lng, srid: 4326})) AS dist
        ORDER BY dist LIMIT 1`,
       { lat, lng }
     );
@@ -108,28 +112,35 @@ r.get('/safeplace', requireAuth, async (req, res) => {
       return res.status(404).json({ error: 'no-safe-place-found' });
     }
 
+    const rec = result.records[0];
     const target = {
-      name: result.records[0].get('name'),
-      lat: result.records[0].get('lat'),
-      lng: result.records[0].get('lng'),
-      capacity: result.records[0].get('capacity'),
-      contact: result.records[0].get('contact')
+      nodeId: rec.get('nodeId'),
+      name: rec.get('name'),
+      lat: rec.get('lat'),
+      lng: rec.get('lng'),
+      capacity: rec.get('capacity'),
+      contact: rec.get('contact')
     };
 
     const route = await findRoute(lat, lng, target.lat, target.lng);
     if (route.error || !route.coords || route.coords.length === 0) {
       return res.status(200).json({
+        status: 'no-safe-route',
         shelterInPlace: true,
-        message: 'All roads to community safe place are flooded. Shelter on high ground.',
+        message: 'All roads to this safe place are flooded. Shelter on high ground.',
+        camp: target,
         destination: target,
         coords: []
       });
     }
 
     res.json({
+      status: 'ok',
+      camp: target,
       destination: target,
-      distanceM: route.distanceM || route.distanceMeters || 0,
-      distanceMeters: route.distanceM || route.distanceMeters || 0,
+      distanceM: route.distanceM,
+      distanceMeters: route.distanceM,
+      hops: route.hops,
       isFloodedAvoided: true,
       coords: route.coords,
       shelterInPlace: false
@@ -141,33 +152,33 @@ r.get('/safeplace', requireAuth, async (req, res) => {
   }
 });
 
-// GET /api/route/floods - Returns flooded roads for map.html red lines
+// GET /api/route/floods - Flooded road segments for the map
 r.get('/floods', async (req, res) => {
   try {
-    const segments = typeof getFloodedRoads === 'function' ? await getFloodedRoads() : [];
+    const segments = await getFloodedRoads();
     res.json({ ok: true, count: segments.length, segments });
   } catch (e) {
-    res.json({ ok: true, count: 0, segments: [] });
+    res.json({ ok: true, count: 0, segments: [], warning: e.message });
   }
 });
 
-// POST /api/route/floods/mark - Mark roads flooded manually (for tests / verify-all)
-r.post('/floods/mark', async (req, res) => {
+r.post('/floods/mark', requireAuth, async (req, res) => {
   try {
     const { lat, lng, radiusM = 300 } = req.body;
     if (!lat || !lng) return res.status(400).json({ error: 'lat-lng-required' });
-    const count = await markRoadsFlooded(Number(lat), Number(lng), Number(radiusM));
-    res.json({ ok: true, roadsFlooded: count });
+    const marked = await markRoadsFlooded(Number(lat), Number(lng), Number(radiusM));
+    req.app.get('io')?.emit('graph:updated', { lat, lng, radiusM, marked });
+    res.json({ ok: true, marked, roadsFlooded: marked });
   } catch (e) {
     res.status(500).json({ error: e.message });
   }
 });
 
-// POST /api/route/floods/clear - Clear floods (for map.html button)
-r.post('/floods/clear', async (req, res) => {
+r.post('/floods/clear', requireAuth, async (req, res) => {
   try {
-    await clearAllFloods();
-    res.json({ ok: true, message: 'All floods cleared' });
+    const cleared = await clearAllFloods();
+    req.app.get('io')?.emit('graph:updated', { cleared });
+    res.json({ ok: true, cleared, message: 'All floods cleared' });
   } catch (e) {
     res.status(500).json({ error: e.message });
   }

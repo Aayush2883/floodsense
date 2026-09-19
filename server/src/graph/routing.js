@@ -14,14 +14,14 @@ async function nearestLocation(s, lat, lng, maxMeters = 500) {
 
 
 
-module.exports = { markRoadsFlooded, clearAllFloods, findRoute, nearestCamp, getFloodedRoads };
 
 async function markRoadsFlooded(lat, lng, radiusM = 300) {
   const s = session();
   try {
     const r = await s.run(
-      `MATCH (a:Location)-[rel:ROAD]->(b:Location)
+            `MATCH (a:Location)-[rel:ROAD]->(b:Location)
        WHERE point.distance(a.point, point({latitude:$lat, longitude:$lng, srid:4326})) < $radiusM
+          OR point.distance(b.point, point({latitude:$lat, longitude:$lng, srid:4326})) < $radiusM
        SET rel.isFlooded = true, rel.floodedAt = timestamp()
        RETURN count(rel) AS marked`,
       { lat, lng, radiusM }

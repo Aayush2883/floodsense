@@ -1,37 +1,54 @@
 require('dotenv').config();
 const express = require('express');
+const http = require('http');
 const cors = require('cors');
-const { createServer } = require('http');
+const path = require('path');
 const { Server: SocketServer } = require('socket.io');
 const { connectMongo } = require('./db/mongo');
-const authRoutes = require('./routes/auth.routes');
-const reportsRoutes = require('./routes/reports.routes');
-const routeRoutes = require('./routes/route.routes');
+const { verifyNeo4j } = require('./db/neo4j');
+const { startSensorWatcher } = require('./services/sensorWatcher');
 
 const app = express();
-app.use(cors({ origin: '*' }));
-app.use(express.json({ limit: '10mb' }));
-app.use(express.static(require('path').join(__dirname, '..', 'public')));
-app.use('/api/reports', reportsRoutes);
-app.use('/api/route', routeRoutes);
-
-app.get('/api/health', (req, res) => {
-  res.json({ ok: true, ts: Date.now(), service: 'floodsense-server' });
+const server = http.createServer(app);
+const io = new SocketServer(server, {
+  cors: { origin: '*' }
 });
 
-app.use('/api/auth', authRoutes);
+app.use(cors({ origin: '*' }));
+app.use(express.json({ limit: '10mb' }));
+app.use(express.static(path.join(__dirname, '../public')));
 
-const httpServer = createServer(app);
-const io = new SocketServer(httpServer, { cors: { origin: '*' } });
-app.set('io', io);
+// Health check
+app.get('/api/health', (req, res) => {
+  res.json({ ok: true, service: 'floodsense-api', timestamp: new Date().toISOString() });
+});
 
-const port = Number(process.env.PORT || 4000);
+// Mount Routes
+app.use('/api/auth', require('./routes/auth.routes'));
+app.use('/api/reports', require('./routes/reports.routes'));
+app.use('/api/route', require('./routes/route.routes'));
+app.use('/api/alerts', require('./routes/alerts.routes'));
+app.use('/api/family', require('./routes/family.routes'));
+app.use('/api/safeplaces', require('./routes/safeplaces.routes'));
+app.use('/api/admin', require('./routes/admin.routes'));
 
-connectMongo()
-  .then(() => {
-    httpServer.listen(port, () => console.log(`[api] listening on :${port}`));
-  })
-  .catch((err) => {
-    console.error('[mongo] connection failed:', err.message);
-    process.exit(1);
+// Sockets
+io.on('connection', (socket) => {
+  socket.on('subscribe:region', (regionCode) => {
+    socket.join(`region:${regionCode}`);
   });
+});
+
+const PORT = process.env.PORT || 4000;
+
+async function start() {
+  await connectMongo();
+  await verifyNeo4j();
+  startSensorWatcher(io);
+
+  server.listen(PORT, () => {
+    console.log(`[api] listening on :${PORT}`);
+  });
+}
+
+start();

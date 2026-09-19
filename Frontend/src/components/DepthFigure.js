@@ -14,7 +14,7 @@ const Body = () => (
 );
 
 // A person with water up to the given depth: the app's main way of showing severity.
-export default function DepthFigure({ depth = 'unknown', width = 22, color = '#34464B' }) {
+export default function DepthFigure({ depth = 'unknown', width = 22, color = C.figure }) {
   const id = `fig${useId().replace(/[^a-zA-Z0-9]/g, '')}`;
   const y = DEPTH_Y[depth] ?? 48;
   const h = 48 - y;

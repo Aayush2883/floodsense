@@ -63,7 +63,7 @@ const st = StyleSheet.create({
   between: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   stepper: { flexDirection: 'row', alignItems: 'center', borderWidth: 1.5, borderColor: C.line, borderRadius: 12, backgroundColor: C.surface, overflow: 'hidden' },
   step: { width: 44, height: 40, alignItems: 'center', justifyContent: 'center' },
-  stepText: { fontFamily: F.bodyBold, fontSize: 22, color: C.river },
-  stepVal: { width: 52, textAlign: 'center', fontFamily: F.monoBold, fontSize: 16, color: C.ink },
+  stepText: { fontFamily: F.bodyBold, fontSize: 22, color: C.action },
+  stepVal: { width: 52, textAlign: 'center', fontFamily: F.monoBold, fontSize: 16, color: C.text },
   map: { height: 180, borderRadius: 14, overflow: 'hidden', borderWidth: 1, borderColor: C.line },
 });

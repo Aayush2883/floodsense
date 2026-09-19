@@ -62,7 +62,7 @@ export default function FamilyScreen({ navigation }) {
               </View>
               <Sev level={inDanger ? 'DANGER' : c.status === 'SAFE' ? 'SAFE' : 'LOW'} label={c.status === 'UNKNOWN' ? '?' : undefined} />
               <Pressable onPress={() => remove(c)} hitSlop={10} accessibilityLabel={`${t('remove')} ${c.name}`}>
-                <Icon name="trash-can-outline" size={20} color={C.muted} />
+                <Icon name="trash-can-outline" size={20} color={C.textSecondary} />
               </Pressable>
             </View>
             {inDanger && (
@@ -70,7 +70,7 @@ export default function FamilyScreen({ navigation }) {
                 <Text style={st.expandText}>{t('floodNear', { m: `${c.zone.label}${c.zone.source === 'sensor' ? ' (sensor)' : ''}` })}</Text>
                 <View style={{ flexDirection: 'row', gap: 8 }}>
                   <Btn small kind="outline" icon="phone" title={`${t('call')} ${c.name}`} style={{ flex: 1 }} onPress={() => callNumber(c.phone || '112')} />
-                  <Btn small kind="safe" title={t('sendSafeRoute')} style={{ flex: 1 }}
+                  <Btn small kind="primary" title={t('sendSafeRoute')} style={{ flex: 1 }}
                     onPress={() => shareText(lang === 'hi'
                       ? `${c.name}, आपके इलाके में बाढ़ की चेतावनी है। FloodSense खोलें और "सुरक्षित जगह जाएँ" दबाएँ। ${mapsLink(c)}`
                       : `${c.name}, there is a flood alert in your area. Open FloodSense and tap "Get to safety". ${mapsLink(c)}`)} />
@@ -107,7 +107,7 @@ export default function FamilyScreen({ navigation }) {
 
 const st = StyleSheet.create({
   row: { flexDirection: 'row', alignItems: 'center', gap: 10 },
-  expand: { backgroundColor: '#FDF1F2', borderRadius: 12, padding: 10, gap: 8 },
-  expandText: { fontFamily: F.bodyMedium, fontSize: 13.5, color: C.dangerDeep },
+  expand: { backgroundColor: C.dangerSoft, borderRadius: 12, padding: 10, gap: 8 },
+  expandText: { fontFamily: F.bodyMedium, fontSize: 13.5, color: C.dangerText },
   chips: { flexDirection: 'row', flexWrap: 'wrap', gap: 6 },
 });

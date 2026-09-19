@@ -2,17 +2,17 @@ import React, { useEffect, useRef } from 'react';
 import { Text, View } from 'react-native';
 import MapView, { Circle, Marker, Polyline } from 'react-native-maps';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
-import { C, F, SEVERITY } from '../theme';
+import { C, F, alpha, severityColor, severitySymbol, severityText } from '../theme';
 import { PATNA_CENTER } from '../data/places';
 
 const Camp = ({ full, big }) => (
-  <View style={{ width: big ? 30 : 22, height: big ? 30 : 22, borderRadius: big ? 9 : 7, backgroundColor: full ? C.grey : C.river, borderWidth: 2, borderColor: '#fff', alignItems: 'center', justifyContent: 'center' }}>
-    <MaterialCommunityIcons name="tent" size={big ? 16 : 12} color="#fff" />
+  <View style={{ width: big ? 30 : 22, height: big ? 30 : 22, borderRadius: big ? 9 : 7, backgroundColor: full ? C.inactive : C.action, borderWidth: 2, borderColor: C.white, alignItems: 'center', justifyContent: 'center' }}>
+    <MaterialCommunityIcons name="tent" size={big ? 16 : 12} color={C.white} />
   </View>
 );
 
 const Safe = ({ full, big }) => (
-  <View style={{ width: big ? 24 : 16, height: big ? 24 : 16, borderRadius: 4, transform: [{ rotate: '45deg' }], backgroundColor: full ? C.grey : C.safe, borderWidth: 2, borderColor: '#fff' }} />
+  <View style={{ width: big ? 24 : 16, height: big ? 24 : 16, borderRadius: 4, transform: [{ rotate: '45deg' }], backgroundColor: full ? C.inactive : C.safeMarker, borderWidth: 2, borderColor: C.white }} />
 );
 
 const zoomToDelta = (z) => 0.03 * 2 ** (14 - z);
@@ -49,16 +49,16 @@ export default function FloodMap({
         toolbarEnabled={false}
       >
         {(heat || []).map((h, i) => (
-          <Circle key={`h${i}`} center={ll(h)} radius={420} strokeWidth={0} fillColor={`${SEVERITY[h.severity]?.color || C.high}33`} />
+          <Circle key={`h${i}`} center={ll(h)} radius={420} strokeWidth={0} fillColor={alpha(severityColor(h.severity), 0.2)} />
         ))}
         {zones.map((z) => (
-          <Circle key={z.id} center={ll(z)} radius={z.radiusM} strokeColor={SEVERITY[z.severity]?.color || C.danger} strokeWidth={1.5} lineDashPattern={[5, 5]} fillColor={`${SEVERITY[z.severity]?.color || C.danger}22`} />
+          <Circle key={z.id} center={ll(z)} radius={z.radiusM} strokeColor={severityColor(z.severity)} strokeWidth={1.5} lineDashPattern={[5, 5]} fillColor={alpha(severityColor(z.severity), 0.13)} />
         ))}
         {segments.map((sg, i) => (
           <Polyline key={`s${i}`} coordinates={[{ latitude: sg.aLat, longitude: sg.aLng }, { latitude: sg.bLat, longitude: sg.bLng }]} strokeColor={C.danger} strokeWidth={5} />
         ))}
-        {naive?.length ? <Polyline coordinates={naive.map(ll)} strokeColor="#5E6F72" strokeWidth={4} lineDashPattern={[7, 7]} /> : null}
-        {route?.length ? <Polyline coordinates={route.map(ll)} strokeColor="#fff" strokeWidth={10} /> : null}
+        {naive?.length ? <Polyline coordinates={naive.map(ll)} strokeColor={C.textSecondary} strokeWidth={4} lineDashPattern={[7, 7]} /> : null}
+        {route?.length ? <Polyline coordinates={route.map(ll)} strokeColor={C.white} strokeWidth={10} /> : null}
         {route?.length ? <Polyline coordinates={route.map(ll)} strokeColor={C.safe} strokeWidth={6} /> : null}
         {camps.map((c) => (
           <Marker key={c.id} coordinate={ll(c)} title={c.name} tracksViewChanges={false}><Camp full={c.isFull} /></Marker>
@@ -69,17 +69,17 @@ export default function FloodMap({
         {sensors.filter((s) => s.lat && s.lng).map((s) => (
           <Marker key={s.sensorId} coordinate={ll(s)} anchor={{ x: 0.1, y: 0.5 }} tracksViewChanges={false}>
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 3 }}>
-              <View style={{ width: 14, height: 14, borderRadius: 7, backgroundColor: SEVERITY[s.alert]?.color || C.grey, borderWidth: 2, borderColor: '#fff' }} />
-              <Text style={{ backgroundColor: SEVERITY[s.alert]?.color || C.grey, color: '#fff', fontFamily: F.monoBold, fontSize: 10, paddingHorizontal: 5, paddingVertical: 1, borderRadius: 4, overflow: 'hidden' }}>{Math.round(s.waterLevelCm)} cm</Text>
+              <View style={{ width: 14, height: 14, borderRadius: 7, backgroundColor: severityColor(s.alert), borderWidth: 2, borderColor: C.white }} />
+              <Text style={{ backgroundColor: severityColor(s.alert), color: severityText(s.alert), fontFamily: F.monoBold, fontSize: 10, paddingHorizontal: 5, paddingVertical: 1, borderRadius: 4, overflow: 'hidden' }}>{severitySymbol(s.alert)}{Math.round(s.waterLevelCm)} cm</Text>
             </View>
           </Marker>
         ))}
         {dest ? <Marker coordinate={ll(dest)} tracksViewChanges={false}>{dest.kind === 'safeplace' ? <Safe big /> : <Camp big />}</Marker> : null}
-        {pin ? <Marker coordinate={ll(pin)} pinColor={C.safe} /> : null}
+        {pin ? <Marker coordinate={ll(pin)} pinColor={C.safeMarker} /> : null}
         {me ? (
           <Marker coordinate={ll(me)} anchor={{ x: 0.5, y: 0.5 }} tracksViewChanges={false}>
-            <View style={{ width: 22, height: 22, borderRadius: 11, backgroundColor: `${C.me}33`, alignItems: 'center', justifyContent: 'center' }}>
-              <View style={{ width: 13, height: 13, borderRadius: 7, backgroundColor: C.me, borderWidth: 2.5, borderColor: '#fff' }} />
+            <View style={{ width: 22, height: 22, borderRadius: 11, backgroundColor: alpha(C.location, 0.2), alignItems: 'center', justifyContent: 'center' }}>
+              <View style={{ width: 13, height: 13, borderRadius: 7, backgroundColor: C.location, borderWidth: 2.5, borderColor: C.white }} />
             </View>
           </Marker>
         ) : null}

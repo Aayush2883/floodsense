@@ -10,7 +10,7 @@ import { C } from '../theme';
 function SettingRow({ icon, title, sub, right, last, onPress }) {
   return (
     <Row last={last} onPress={onPress}>
-      <Icon name={icon} color={C.river} size={22} />
+      <Icon name={icon} color={C.action} size={22} />
       <View style={{ flex: 1 }}>
         <T v="bodyB">{title}</T>
         {sub ? <T v="muted">{sub}</T> : null}
@@ -50,7 +50,7 @@ export default function ProfileScreen({ navigation }) {
       </View>
       <Card>
         <SettingRow icon="home-outline" title={t('home')} sub={me.label} right={<T v="link" onPress={useGps}>GPS</T>} />
-        <SettingRow icon="crosshairs-gps" title="Reset to demo location" sub={DEMO_ME.label} onPress={() => { setMe(DEMO_ME); showToast(DEMO_ME.label, 'info'); }} right={<Icon name="chevron-right" color={C.muted} />} />
+        <SettingRow icon="crosshairs-gps" title="Reset to demo location" sub={DEMO_ME.label} onPress={() => { setMe(DEMO_ME); showToast(DEMO_ME.label, 'info'); }} right={<Icon name="chevron-right" color={C.textSecondary} />} />
         <SettingRow icon="translate" title={t('language')} sub={lang === 'hi' ? 'हिंदी' : 'English'} onPress={() => setLang(lang === 'hi' ? 'en' : 'hi')} right={<T v="link">{lang === 'hi' ? 'English' : 'हिंदी'}</T>} />
         <SettingRow icon="bell-outline" title={t('dangerAlerts')} sub="Push + SMS backup" right={<Toggle value={alertsOn} onChange={setAlertsOn} />} />
         <SettingRow icon="flask-outline" title={t('demoData')} sub={t('demoDataSub')} right={<Toggle value={forceDemo} onChange={(v) => { setDemo(v); showToast(v ? t('demoOn') : t('demoOff'), 'info'); }} />} />

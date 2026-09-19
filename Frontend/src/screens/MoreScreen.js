@@ -18,14 +18,14 @@ export default function MoreScreen({ navigation }) {
       <Card>
         {items.map((it, i) => (
           <Row key={it.go} onPress={() => navigation.navigate(it.go)} last={i === items.length - 1}>
-            <View style={{ width: 40, height: 40, borderRadius: 12, backgroundColor: C.riverSoft, alignItems: 'center', justifyContent: 'center' }}>
-              <Icon name={it.icon} color={C.river} size={22} />
+            <View style={{ width: 40, height: 40, borderRadius: 12, backgroundColor: C.actionSoft, alignItems: 'center', justifyContent: 'center' }}>
+              <Icon name={it.icon} color={C.action} size={22} />
             </View>
             <View style={{ flex: 1 }}>
               <T v="bodyB">{it.title}</T>
               <T v="muted" numberOfLines={1}>{it.sub}</T>
             </View>
-            <Icon name="chevron-right" color={C.muted} />
+            <Icon name="chevron-right" color={C.textSecondary} />
           </Row>
         ))}
       </Card>

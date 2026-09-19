@@ -35,7 +35,7 @@ export default function VolunteerScreen({ navigation }) {
 
   return (
     <Screen>
-      <Header title={t('volunteer')} sub={t('volunteerSub')} onBack={() => navigation.goBack()} right={<Chip icon="shield-account" label="Admin" style={{ backgroundColor: C.ink }} color="#fff" />} />
+      <Header title={t('volunteer')} sub={t('volunteerSub')} onBack={() => navigation.goBack()} right={<Chip icon="shield-account" label="Admin" style={{ backgroundColor: C.text }} color={C.textOnColor} />} />
       <View style={st.stats}>
         <View style={st.stat}><Text style={[st.num, { color: C.danger }]}>{floods.segmentCount}</Text><T v="muted">{t('floodedSegments')}</T></View>
         <View style={st.stat}><Text style={st.num}>{recent}</Text><T v="muted">{t('reportsCount')} · 1 h</T></View>
@@ -59,7 +59,7 @@ export default function VolunteerScreen({ navigation }) {
       </Card>
       {mode === 'live' && floods.segments.length > 0 && <Banner kind="info">{floods.segments.length} {t('floodedSegments')} in Neo4j</Banner>}
       <Btn kind="outline" icon="road-variant" title={t('reopenRoads')} onPress={reopen} loading={busy === 'clear'} />
-      <Btn kind="danger" icon="waves-arrow-up" title={t('simulateSensor')} onPress={simulate} loading={busy === 'sim'} />
+      <Btn kind="outline" icon="waves-arrow-up" title={t('simulateSensor')} onPress={simulate} loading={busy === 'sim'} />
     </Screen>
   );
 }
@@ -67,6 +67,6 @@ export default function VolunteerScreen({ navigation }) {
 const st = StyleSheet.create({
   stats: { flexDirection: 'row', gap: 8 },
   stat: { flex: 1, backgroundColor: C.surface, borderWidth: 1, borderColor: C.line, borderRadius: 14, padding: 10 },
-  num: { fontFamily: F.displayHeavy, fontSize: 30, lineHeight: 34, color: C.ink },
+  num: { fontFamily: F.displayHeavy, fontSize: 30, lineHeight: 34, color: C.text },
   map: { height: 210, borderRadius: 16, overflow: 'hidden', borderWidth: 1, borderColor: C.line },
 });

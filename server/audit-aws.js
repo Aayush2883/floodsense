@@ -69,4 +69,7 @@ const show = (label, fn) => fn().then(
       return `\n    SQL:      ${r.rule.sql}\n    actions:  ${actions}\n    disabled: ${r.rule.ruleDisabled}`;
     });
   }
+    console.log('\n--- Alerts key schema ---');
+  await show('keys', async () =>
+    JSON.stringify((await ddb.describeTable({ TableName: 'Alerts' }).promise()).Table.KeySchema));
 })();

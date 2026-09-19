@@ -12,12 +12,16 @@ async function nearestLocation(s, lat, lng, maxMeters = 500) {
   return r.records[0]?.get('nodeId') ?? null;
 }
 
+
+
+
 async function markRoadsFlooded(lat, lng, radiusM = 300) {
   const s = session();
   try {
     const r = await s.run(
-      `MATCH (a:Location)-[rel:ROAD]->(b:Location)
+            `MATCH (a:Location)-[rel:ROAD]->(b:Location)
        WHERE point.distance(a.point, point({latitude:$lat, longitude:$lng, srid:4326})) < $radiusM
+          OR point.distance(b.point, point({latitude:$lat, longitude:$lng, srid:4326})) < $radiusM
        SET rel.isFlooded = true, rel.floodedAt = timestamp()
        RETURN count(rel) AS marked`,
       { lat, lng, radiusM }
@@ -97,4 +101,25 @@ async function nearestCamp(lat, lng) {
   } finally { await s.close(); }
 }
 
-module.exports = { markRoadsFlooded, clearAllFloods, findRoute, nearestCamp };
+async function getFloodedRoads() {
+  const s = session();
+  try {
+    const r = await s.run(
+      `MATCH (a:Location)-[rel:ROAD]->(b:Location)
+       WHERE rel.isFlooded = true
+       RETURN a.point.y AS aLat, a.point.x AS aLng,
+              b.point.y AS bLat, b.point.x AS bLng
+       LIMIT 1000`
+    );
+    return r.records.map(rec => ({
+      aLat: rec.get('aLat'),
+      aLng: rec.get('aLng'),
+      bLat: rec.get('bLat'),
+      bLng: rec.get('bLng')
+    }));
+  } finally {
+    await s.close();
+  }
+}
+
+module.exports = { markRoadsFlooded, clearAllFloods, findRoute, nearestCamp, getFloodedRoads };

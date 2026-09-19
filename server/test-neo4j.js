@@ -3,7 +3,7 @@ const { session, verifyNeo4j, driver } = require('./src/db/neo4j');
 
 (async () => {
   console.log('URI:', process.env.NEO4J_URI);
-  console.log('user:', process.env.NEO4J_USER);
+  console.log('user:', process.env.NEO4J_USERNAME);
   console.log('database:', process.env.NEO4J_DATABASE);
 
   await verifyNeo4j();

@@ -54,7 +54,7 @@ r.post('/text', requireAuth, async (req, res) => {
     };
     let persisted = false;
     try {
-      await ddb.send(new PutCommand({ TableName: process.env.DDB_REPORTS, Item: item }));
+      await ddb.send(new PutCommand({ TableName: process.env.DDB_REPORTS || process.env.DYNAMODB_TABLE_REPORTS, Item: item }));
       persisted = true;
     } catch (e) {
       console.warn('[reports] DynamoDB write skipped:', e.name);

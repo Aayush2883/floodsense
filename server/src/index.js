@@ -18,6 +18,8 @@ app.set('io', io);
 app.use(cors({ origin: '*' }));
 app.use(express.json({ limit: '10mb' }));
 app.use(express.static(path.join(__dirname, '../public')));
+// the Leaflet demo page (map.html) lives with the rest of the frontend
+app.use(express.static(path.join(__dirname, '../../Frontend/web-demo')));
 
 // Health check
 app.get('/api/health', (req, res) => {

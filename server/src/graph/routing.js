@@ -80,25 +80,65 @@ async function findRoute(fromLat, fromLng, toLat, toLng, { avoidFlooded = true, 
   } finally { await s.close(); }
 }
 
-async function nearestCamp(lat, lng) {
+async function nearestCamp(lat, lng, maxMeters = 50000) {
   const s = session();
   try {
-    const r = await s.run(
-      `MATCH (c:ReliefCamp) WHERE c.isFull = false
+    // Priority 1: Relief camps where isFull = false within 50km
+    const campRes = await s.run(
+      `MATCH (c:ReliefCamp)
+       WHERE (c.isFull = false OR c.isFull IS NULL)
+         AND point.distance(c.point, point({latitude:$lat, longitude:$lng, srid:4326})) <= $maxMeters
        RETURN c.nodeId AS nodeId, c.name AS name,
               c.point.y AS lat, c.point.x AS lng,
+              c.capacity AS capacity, c.contact AS contact,
               point.distance(c.point, point({latitude:$lat, longitude:$lng, srid:4326})) AS d
        ORDER BY d ASC LIMIT 1`,
-      { lat, lng }
+      { lat, lng, maxMeters }
     );
-    const rec = r.records[0];
-    if (!rec) return null;
-    return {
-      nodeId: rec.get('nodeId'), name: rec.get('name'),
-      lat: rec.get('lat'), lng: rec.get('lng'),
-      straightLineM: Math.round(rec.get('d')),
-    };
-  } finally { await s.close(); }
+    if (campRes.records.length > 0) {
+      const rec = campRes.records[0];
+      return {
+        nodeId: rec.get('nodeId'),
+        name: rec.get('name'),
+        lat: rec.get('lat'),
+        lng: rec.get('lng'),
+        capacity: rec.get('capacity'),
+        contact: rec.get('contact'),
+        straightLineM: Math.round(rec.get('d')),
+        kind: 'camp',
+      };
+    }
+
+    // Priority 2: Safe places where isFull = false within 50km
+    const safeRes = await s.run(
+      `MATCH (sp:SafePlace)
+       WHERE (sp.isFull = false OR sp.isFull IS NULL)
+         AND point.distance(sp.point, point({latitude:$lat, longitude:$lng, srid:4326})) <= $maxMeters
+       RETURN sp.nodeId AS nodeId, sp.name AS name,
+              sp.point.y AS lat, sp.point.x AS lng,
+              sp.capacity AS capacity, sp.contact AS contact,
+              point.distance(sp.point, point({latitude:$lat, longitude:$lng, srid:4326})) AS d
+       ORDER BY d ASC LIMIT 1`,
+      { lat, lng, maxMeters }
+    );
+    if (safeRes.records.length > 0) {
+      const rec = safeRes.records[0];
+      return {
+        nodeId: rec.get('nodeId'),
+        name: rec.get('name'),
+        lat: rec.get('lat'),
+        lng: rec.get('lng'),
+        capacity: rec.get('capacity'),
+        contact: rec.get('contact'),
+        straightLineM: Math.round(rec.get('d')),
+        kind: 'safeplace',
+      };
+    }
+
+    return null;
+  } finally {
+    await s.close();
+  }
 }
 
 async function getFloodedRoads() {

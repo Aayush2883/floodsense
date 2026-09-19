@@ -32,6 +32,7 @@ app.use('/api/route', require('./routes/route.routes'));
 app.use('/api/alerts', require('./routes/alerts.routes'));
 app.use('/api/family', require('./routes/family.routes'));
 app.use('/api/safeplaces', require('./routes/safeplaces.routes'));
+app.use('/api/region', require('./routes/region.routes'));
 app.use('/api/admin', require('./routes/admin.routes'));
 
 // Sockets
@@ -48,7 +49,7 @@ async function start() {
     await connectMongo();
     await verifyNeo4j();
     startSensorWatcher(io);
-    server.listen(PORT, () => {
+    server.listen(PORT,'0.0.0.0', () => {
       console.log(`[api] listening on :${PORT}`);
     });
   } catch (err) {

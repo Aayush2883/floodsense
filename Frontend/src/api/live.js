@@ -40,6 +40,10 @@ export function createLiveApi(baseUrl, getToken) {
   }
 
   return {
+    async ensureRegion(lat, lng) {
+      return req(`/api/region/ensure?lat=${encodeURIComponent(lat)}&lng=${encodeURIComponent(lng)}`);
+    },
+
     async health() {
       const d = await req('/api/health', { timeoutMs: 3000 });
       return !!d?.ok;

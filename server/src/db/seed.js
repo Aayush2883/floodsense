@@ -80,7 +80,8 @@ async function seed() {
              c.currentOccupancy = $currentOccupancy,
              c.contact = $contact,
              c.facilities = $facilities,
-             c.point = point({latitude: $lat, longitude: $lng, srid: 4326})`,
+             c.point = point({latitude: $lat, longitude: $lng, srid: 4326}),
+             c.isFull = false`,
         c
       );
       console.log(`  ? Seeded: ${c.name} (${c.city})`);

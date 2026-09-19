@@ -1,11 +1,14 @@
-# FloodSense app (Expo / React Native)
+# FloodSense Frontend
 
-One codebase for Android, iOS and the web. The web build is what we use for the demo video.
+Everything the user sees lives in this folder:
+
+- the **Expo / React Native app** (Android, iOS and web; the web build is what we use for the demo video)
+- `web-demo/map.html`, the first Leaflet demo page. The server still serves it at `http://localhost:4000/map.html`.
 
 ## Run it
 
 ```bash
-cd client
+cd Frontend
 npm install
 npx expo start --web      # website at http://localhost:8081
 npx expo start            # scan the QR code with Expo Go on a phone
@@ -43,6 +46,7 @@ For the live version, run the server and `python iot-simulator/simulator.py --se
 
 | Path | What |
 |---|---|
+| `web-demo/map.html` | Old single-page Leaflet demo, served by Express |
 | `App.js` | Fonts, navigation (5 tabs + stack), web phone frame |
 | `src/state/AppState.js` | Server check, data refresh, Socket.io, family status |
 | `src/api/live.js` | Calls to the Express server |

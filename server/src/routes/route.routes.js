@@ -65,7 +65,8 @@ r.get('/safe', requireAuth, async (req, res) => {
       return res.status(400).json({ error: 'from-and-to-coords-required' });
     }
 
-    const route = await findRoute(fromLat, fromLng, toLat, toLng);
+    const avoidFlooded = req.query.avoid !== 'false';
+    const route = await findRoute(fromLat, fromLng, toLat, toLng, { avoidFlooded });
     if (route.error || !route.coords || route.coords.length === 0) {
       return res.status(200).json({
         shelterInPlace: true,

@@ -31,6 +31,14 @@ export function createLiveApi(baseUrl, getToken) {
 
   const q = (o) => Object.entries(o).map(([k, v]) => `${k}=${encodeURIComponent(v)}`).join('&');
 
+  // alerts router is mounted at /api (GET /api/alerts, /api/sensors); older servers used /api/alerts/*
+  async function getWithFallback(path, oldPath) {
+    try { return await req(path); } catch (e) {
+      if (e.status === 404) return req(oldPath);
+      throw e;
+    }
+  }
+
   function normRoute(data, dest) {
     const blocked = data?.shelterInPlace || data?.status === 'no-safe-route' || !data?.coords?.length;
     const d = data?.camp || data?.destination || dest;
@@ -81,7 +89,7 @@ export function createLiveApi(baseUrl, getToken) {
     },
 
     async getAlerts() {
-      const d = await req('/api/alerts/alerts');
+      const d = await getWithFallback('/api/alerts', '/api/alerts/alerts');
       return (d?.alerts || []).map((a) => ({
         id: a.alertId, kind: a.source === 'sensor' ? 'sensor' : 'report', severity: a.severity || 'DANGER',
         sensorId: a.sensorId, lat: a.lat, lng: a.lng, waterLevelCm: a.waterLevelCm, roadsFlooded: a.roadsFlooded,
@@ -90,7 +98,7 @@ export function createLiveApi(baseUrl, getToken) {
     },
 
     async getSensors() {
-      const d = await req('/api/alerts/sensors');
+      const d = await getWithFallback('/api/sensors', '/api/alerts/sensors');
       return (d?.sensors || []).map((s) => ({ ...s, area: SENSOR_AREAS[s.sensorId] || s.regionCode }));
     },
 

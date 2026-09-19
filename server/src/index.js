@@ -13,6 +13,7 @@ const server = http.createServer(app);
 const io = new SocketServer(server, {
   cors: { origin: '*' }
 });
+app.set('io', io);
 
 app.use(cors({ origin: '*' }));
 app.use(express.json({ limit: '10mb' }));
@@ -42,13 +43,16 @@ io.on('connection', (socket) => {
 const PORT = process.env.PORT || 4000;
 
 async function start() {
-  await connectMongo();
-  await verifyNeo4j();
-  startSensorWatcher(io);
-
-  server.listen(PORT, () => {
-    console.log(`[api] listening on :${PORT}`);
-  });
+  try {
+    await connectMongo();
+    await verifyNeo4j();
+    startSensorWatcher(io);
+    server.listen(PORT, () => {
+      console.log(`[api] listening on :${PORT}`);
+    });
+  } catch (err) {
+    console.error('[server] Fatal startup failure:', err.message);
+    process.exit(1);
+  }
 }
-
 start();

@@ -47,7 +47,8 @@ r.post('/', requireAuth, async (req, res) => {
        WITH safe, loc
        ORDER BY point.distance(safe.point, loc.point)
        LIMIT 1
-       MERGE (loc)-[:ROAD {distance: 0.1, isFlooded: false}]->(safe)`,
+      MERGE (loc)-[:ROAD {distanceM: 10, isFlooded: false}]->(safe)
+      MERGE (safe)-[:ROAD {distanceM: 10, isFlooded: false}]->(loc)`,
       { nodeId }
     );
 

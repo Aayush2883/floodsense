@@ -31,7 +31,7 @@ export default function SignInScreen() {
   return (
     <Screen contentStyle={{ gap: 14, paddingTop: 48 }}>
       <View style={st.brand}>
-        <View style={st.mark}><Icon name="waves" size={26} color="#fff" /></View>
+        <View style={st.mark}><Icon name="waves" size={26} color={C.textOnColor} /></View>
         <View>
           <Text style={st.wm}>FloodSense</Text>
           <T v="muted">{t('tagline')}</T>
@@ -42,7 +42,7 @@ export default function SignInScreen() {
       <View style={st.langs}>
         {[['hi', 'हिंदी'], ['en', 'English']].map(([k, label]) => (
           <Pressable key={k} onPress={() => setLang(k)} style={[st.lang, lang === k && st.langOn]} accessibilityRole="radio" accessibilityState={{ checked: lang === k }}>
-            <Text style={[st.langText, lang === k && { color: C.river }]}>{label}</Text>
+            <Text style={[st.langText, lang === k && { color: C.action }]}>{label}</Text>
           </Pressable>
         ))}
       </View>
@@ -71,14 +71,13 @@ export default function SignInScreen() {
 
 const st = StyleSheet.create({
   brand: { flexDirection: 'row', alignItems: 'center', gap: 12 },
-  mark: { width: 52, height: 52, borderRadius: 15, backgroundColor: C.river, alignItems: 'center', justifyContent: 'center' },
-  wm: { fontFamily: F.displayHeavy, fontSize: 32, lineHeight: 36, color: C.ink },
+  mark: { width: 52, height: 52, borderRadius: 15, backgroundColor: C.action, alignItems: 'center', justifyContent: 'center' },
+  wm: { fontFamily: F.displayHeavy, fontSize: 32, lineHeight: 36, color: C.text },
   langs: { flexDirection: 'row', gap: 8 },
   lang: { flex: 1, height: 50, borderRadius: 14, borderWidth: 1.5, borderColor: C.line, backgroundColor: C.surface, alignItems: 'center', justifyContent: 'center' },
-  langOn: { borderColor: C.river, backgroundColor: C.riverSoft },
-  langText: { fontFamily: F.bodyBold, fontSize: 17, color: C.ink },
+  langOn: { borderColor: C.action, backgroundColor: C.actionSoft },
+  langText: { fontFamily: F.bodyBold, fontSize: 17, color: C.text },
   divider: { flexDirection: 'row', alignItems: 'center', gap: 10, marginVertical: 4 },
   rule: { flex: 1, height: 1, backgroundColor: C.line },
-  switch: { fontFamily: F.bodyBold, fontSize: 14, color: C.river },
-  guest: { marginTop: 10, flexDirection: 'row', alignItems: 'center', gap: 12, backgroundColor: '#E8F1EF', borderColor: '#CFE2DE', borderWidth: 1, borderRadius: 16, padding: 14 },
+  switch: { fontFamily: F.bodyBold, fontSize: 14, color: C.action },
 });

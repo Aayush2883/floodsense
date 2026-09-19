@@ -6,10 +6,11 @@ import { useApp } from '../state/AppState';
 import { C, F } from '../theme';
 
 const KIND = {
-  ok: { icon: 'check-circle', color: '#7BE0A6' },
-  info: { icon: 'information', color: '#8FD3DA' },
-  warn: { icon: 'wifi-off', color: '#F2C46B' },
-  error: { icon: 'alert-circle', color: '#F59AA6' },
+  // confirmations are actions, not "safe", so they use the teal family; problems use amber
+  ok: { icon: 'check-circle', color: C.toastAction },
+  info: { icon: 'information', color: C.toastInfo },
+  warn: { icon: 'wifi-off', color: C.toastWarning },
+  error: { icon: 'alert-circle', color: C.toastWarning },
 };
 
 // Short confirmation at the bottom of the screen ("Saved", "Roads reopened", …)
@@ -45,6 +46,6 @@ export default function Toast() {
 }
 
 const st = StyleSheet.create({
-  wrap: { position: 'absolute', left: 16, right: 16, zIndex: 90, flexDirection: 'row', alignItems: 'center', gap: 10, backgroundColor: C.ink, borderRadius: 14, paddingHorizontal: 14, paddingVertical: 12, shadowColor: '#000', shadowOpacity: 0.25, shadowRadius: 12, shadowOffset: { width: 0, height: 6 }, elevation: 8 },
-  text: { flex: 1, fontFamily: F.bodySemi, fontSize: 14.5, lineHeight: 20, color: '#fff' },
+  wrap: { position: 'absolute', left: 16, right: 16, zIndex: 90, flexDirection: 'row', alignItems: 'center', gap: 10, backgroundColor: C.text, borderRadius: 14, paddingHorizontal: 14, paddingVertical: 12, shadowColor: C.shadow, shadowOpacity: 0.25, shadowRadius: 12, shadowOffset: { width: 0, height: 6 }, elevation: 8 },
+  text: { flex: 1, fontFamily: F.bodySemi, fontSize: 14.5, lineHeight: 20, color: C.textOnColor },
 });

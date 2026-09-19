@@ -66,11 +66,11 @@ export default function ReportResultScreen({ navigation }) {
 
 const st = StyleSheet.create({
   chip: { position: 'absolute', left: 0, right: 0, alignItems: 'center' },
-  sheet: { position: 'absolute', left: 0, right: 0, bottom: 0, backgroundColor: C.surface, borderTopLeftRadius: 24, borderTopRightRadius: 24, paddingHorizontal: 16, paddingTop: 10, gap: 11, shadowColor: '#0F1E24', shadowOpacity: 0.16, shadowRadius: 20, elevation: 10 },
+  sheet: { position: 'absolute', left: 0, right: 0, bottom: 0, backgroundColor: C.surface, borderTopLeftRadius: 24, borderTopRightRadius: 24, paddingHorizontal: 16, paddingTop: 10, gap: 11, shadowColor: C.shadow, shadowOpacity: 0.16, shadowRadius: 20, elevation: 10 },
   grab: { alignSelf: 'center', width: 38, height: 4, borderRadius: 2, backgroundColor: C.line },
   between: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   facts: { flexDirection: 'row', flexWrap: 'wrap', borderWidth: 1, borderColor: C.line, borderRadius: 12, overflow: 'hidden' },
   fact: { width: '50%', paddingHorizontal: 10, paddingVertical: 8, borderColor: C.line, borderRightWidth: 0.5, borderBottomWidth: 0.5 },
-  fk: { fontFamily: F.bodyBold, fontSize: 10.5, letterSpacing: 0.6, textTransform: 'uppercase', color: C.muted },
-  fv: { fontFamily: F.bodySemi, fontSize: 14, color: C.ink },
+  fk: { fontFamily: F.bodyBold, fontSize: 10.5, letterSpacing: 0.6, textTransform: 'uppercase', color: C.textSecondary },
+  fv: { fontFamily: F.bodySemi, fontSize: 14, color: C.text },
 });

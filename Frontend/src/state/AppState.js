@@ -7,6 +7,8 @@ import { createLiveApi, zonesFrom } from '../api/live';
 import { mockApi } from '../api/mock';
 import { DEMO_ME } from '../data/places';
 import { haversine } from '../geo';
+import * as Location from 'expo-location';
+import { nearLabel } from '../actions';
 import { translate } from '../i18n';
 
 const Ctx = createContext(null);
@@ -38,6 +40,8 @@ const DEMO_FAMILY = [
 
 export function AppProvider({ children }) {
   const [ready, setReady] = useState(false);
+  const [regionReady, setRegionReady] = useState(false);
+  const [mappingStatus, setMappingStatus] = useState('Mapping your area…');
   const [lang, setLangState] = useState('en');
   const [session, setSession] = useState(null); // { token, user, guest }
   const [forceDemo, setForceDemo] = useState(false);
@@ -87,6 +91,49 @@ export function AppProvider({ children }) {
   const queueReport = useCallback((payload) => {
     setQueue((q) => { const next = [...q, { ...payload, queuedAt: Date.now() }]; save('fs_queue', next); return next; });
   }, []);
+
+
+  // ---- On boot: get GPS coordinates, ensure region roads are ingested ----
+  useEffect(() => {
+    let cancelled = false;
+    async function initRegion() {
+      if (!ready || mode === 'checking') return;
+      if (mode === 'demo') {
+        setRegionReady(true);
+        return;
+      }
+      setMappingStatus('Acquiring GPS location...');
+      let coords = { lat: me.lat, lng: me.lng };
+      try {
+        const { status } = await Location.requestForegroundPermissionsAsync();
+        if (status === 'granted') {
+          const loc = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
+          if (loc?.coords) {
+            coords = { lat: loc.coords.latitude, lng: loc.coords.longitude };
+            if (!cancelled) {
+              setMe({ ...coords, label: nearLabel(coords) });
+            }
+          }
+        }
+      } catch (e) {
+        console.warn('[AppState] GPS location error:', e);
+      }
+
+      setMappingStatus('Mapping your area…');
+      try {
+        await api.ensureRegion(coords.lat, coords.lng);
+      } catch (err) {
+        console.warn('[AppState] ensureRegion error:', err);
+      } finally {
+        if (!cancelled) {
+          setRegionReady(true);
+        }
+      }
+    }
+
+    initRegion();
+    return () => { cancelled = true; };
+  }, [ready, mode, baseUrl]);
 
   // demo tokens don't work on the real server and vice versa
   const ensureAuth = useCallback(async () => {
@@ -182,7 +229,7 @@ export function AppProvider({ children }) {
   }).sort((a, b) => (a.status === 'DANGER' ? -1 : 0) - (b.status === 'DANGER' ? -1 : 0)), [family, floods.zones]);
 
   const value = {
-    ready, lang, setLang, session, saveSession, ensureAuth, mode, forceDemo, setDemo, serverUp, baseUrl, api,
+    ready, regionReady, setRegionReady, mappingStatus, lang, setLang, session, saveSession, ensureAuth, mode, forceDemo, setDemo, serverUp, baseUrl, api,
     me, setMe, floods, alerts, reports, sensors, safePlaces, family, saveFamily, familyStatus, nearestDanger,
     refresh, updatedAt, banner, setBanner, simulateSensor, lastReport, setLastReport,
     toast, setToast, showToast, queue, queueReport,

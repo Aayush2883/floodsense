@@ -139,6 +139,12 @@ export function mockExtract(text, pickedDepth) {
 // ---- the mock API (same shape as api/live.js) ----
 export const mockApi = {
   async health() { return true; },
+  async ensureRegion(lat, lng) {
+    await wait(300);
+    const rLat = Math.floor(Number(lat) * 10) / 10;
+    const rLng = Math.floor(Number(lng) * 10) / 10;
+    return { status: 'ready', cached: true, regionCode: `${rLat}_${rLng}` };
+  },
 
   async signup({ email, name }) { await wait(300); return { token: 'demo-token', user: { id: 'demo', email, name } }; },
   async login({ email }) { await wait(300); return { token: 'demo-token', user: { id: 'demo', email, name: email.split('@')[0] } }; },

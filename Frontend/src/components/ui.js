@@ -85,11 +85,11 @@ export function Chip({ label, on, onPress, icon, float, style, color }) {
   );
 }
 
-export function Sev({ level, label, big }) {
+export function Sev({ level, label, big, style }) {
   const t = useT();
   const color = SEVERITY[level]?.color || C.grey;
   return (
-    <View style={[s.sev, big && { height: 24, paddingHorizontal: 10 }, { backgroundColor: color }]}>
+    <View style={[s.sev, big && { height: 24, paddingHorizontal: 10 }, { backgroundColor: color }, style]}>
       <Text style={[s.sevText, big && { fontSize: 12 }]}>{label || t(`sev${level}`)}</Text>
     </View>
   );

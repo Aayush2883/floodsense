@@ -11,7 +11,7 @@ import { C, F } from '../theme';
 const CAMPS = campsAsPlaces();
 
 export default function SafePlacesScreen({ navigation }) {
-  const { safePlaces, me, api, ensureAuth, refresh, floods } = useApp();
+  const { safePlaces, me, api, ensureAuth, refresh, floods, showToast } = useApp();
   const t = useT();
   const [view, setView] = useState('list');
 
@@ -22,7 +22,8 @@ export default function SafePlacesScreen({ navigation }) {
 
   function markFull(p) {
     confirm(t('markFull'), p.name, async () => {
-      try { await ensureAuth(); await api.markFull(p.nodeId); refresh(); } catch { /* ignore */ }
+      try { await ensureAuth(); await api.markFull(p.nodeId); refresh(); showToast(t('markedFull', { n: p.name }), 'info'); }
+      catch (e) { showToast(t('errorGeneric', { e: e.message }), 'error'); }
     });
   }
 

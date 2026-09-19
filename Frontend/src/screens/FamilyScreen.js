@@ -11,7 +11,7 @@ const RELATIONS = {
 };
 
 export default function FamilyScreen({ navigation }) {
-  const { familyStatus, family, saveFamily, api, ensureAuth, lang } = useApp();
+  const { familyStatus, family, saveFamily, api, ensureAuth, lang, showToast } = useApp();
   const t = useT();
   const [adding, setAdding] = useState(false);
   const [name, setName] = useState('');
@@ -35,12 +35,14 @@ export default function FamilyScreen({ navigation }) {
     } catch { /* kept on this phone even if the server is down */ }
     saveFamily([...family, { ...contact, lat: geo?.lat ?? null, lng: geo?.lng ?? null, label: geo?.label || `PIN ${pin}` }]);
     setName(''); setRelation(''); setPin(''); setPhone(''); setAdding(false); setBusy(false);
+    showToast(geo ? t('familyAdded', { n: contact.name }) : t('familyAddedNoPin', { n: contact.name }), geo ? 'ok' : 'warn');
   }
 
   function remove(c) {
     confirm(t('remove'), c.name, () => {
       saveFamily(family.filter((x) => x.id !== c.id));
       api.removeFamily(c.id).catch(() => {});
+      showToast(t('familyRemoved', { n: c.name }), 'info');
     });
   }
 
@@ -60,7 +62,7 @@ export default function FamilyScreen({ navigation }) {
               </View>
               <Sev level={inDanger ? 'DANGER' : c.status === 'SAFE' ? 'SAFE' : 'LOW'} label={c.status === 'UNKNOWN' ? '?' : undefined} />
               <Pressable onPress={() => remove(c)} hitSlop={10} accessibilityLabel={`${t('remove')} ${c.name}`}>
-                <Icon name="dots-vertical" color={C.muted} />
+                <Icon name="trash-can-outline" size={20} color={C.muted} />
               </Pressable>
             </View>
             {inDanger && (

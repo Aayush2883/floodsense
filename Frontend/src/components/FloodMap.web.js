@@ -41,14 +41,14 @@ const meIcon = () => L.divIcon({
   className: '',
   iconSize: [22, 22],
   iconAnchor: [11, 11],
-  html: `<div style="width:22px;height:22px;border-radius:50%;background:${C.me}33;display:grid;place-items:center"><div style="width:13px;height:13px;border-radius:50%;background:${C.me};border:2.5px solid #fff;box-shadow:0 1px 4px rgba(0,0,0,.35)"></div></div>`,
+  html: `<div style="width:22px;height:22px;border-radius:50%;background:#2B6CD1;display:grid;place-items:center"><div style="width:13px;height:13px;border-radius:50%;background:${C.me};border:2.5px solid #fff;box-shadow:0 1px 1px rgba(5, 5, 5, 0.35)"></div></div>`,
 });
 
 const pinIcon = () => L.divIcon({
   className: '',
   iconSize: [28, 36],
   iconAnchor: [14, 34],
-  html: `<svg viewBox="0 0 24 30" width="28" height="36"><path d="M12 29s-9-9-9-16a9 9 0 0 1 18 0c0 7-9 16-9 16z" fill="${C.safe}" stroke="#fff" stroke-width="2"/><circle cx="12" cy="12" r="3.5" fill="#fff"/></svg>`,
+  html: `<svg viewBox="0 0 24 30" width="28" height="36"><path d="M12 29s-9-9-9-16a9 9 0 0 1 18 0c0 7-9 16-9 16z" fill="${C.me}33" stroke="#fff" stroke-width="2"/><circle cx="12" cy="12" r="3.5" fill="#fff"/></svg>`,
 });
 
 const destIcon = () => L.divIcon({

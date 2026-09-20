@@ -113,9 +113,9 @@ const st = StyleSheet.create({
   bannerTitle: { fontFamily: F.bodyBold, fontSize: 15, color: '#fff' },
   bannerSub: { fontFamily: F.body, fontSize: 12.5, color: 'rgba(255,255,255,.9)' },
   locateBtn: { position: 'absolute', right: 12, width: 48, height: 48, borderRadius: 14, backgroundColor: C.surface, alignItems: 'center', justifyContent: 'center', ...shadow },
-  bottom: { position: 'absolute', left: 0, right: 0, bottom: 12, gap: 8 },
+    bottom: { position: 'absolute', left: 0, right: 0, bottom: 12, gap: 8, zIndex: 20 },
   hint: { alignSelf: 'center', fontFamily: F.bodySemi, fontSize: 11.5, color: C.muted, backgroundColor: 'rgba(255,255,255,.85)', paddingHorizontal: 10, paddingVertical: 2, borderRadius: 10, overflow: 'hidden' },
-  fab: { marginHorizontal: 14, height: 56, borderRadius: 16, backgroundColor: C.river, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, ...shadow, shadowColor: C.river, shadowOpacity: 0.4 },
-  fabText: { fontFamily: F.bodyBold, fontSize: 17, color: '#fff' },
-  fabAlt: { fontFamily: F.body, fontSize: 13, color: 'rgba(255,255,255,.85)' },
+    fab: { marginHorizontal: 14, height: 56, borderRadius: 16, backgroundColor: '#2B6CD1', opacity: 1, zIndex: 20, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8 },
+  fabText: { fontFamily: F.bodyBold, fontSize: 17, color: '#FFFFFF' },
+  fabAlt: { fontFamily: F.body, fontSize: 13, color: 'rgba(255,255,255,.9)' },
 });

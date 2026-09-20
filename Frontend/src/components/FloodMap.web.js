@@ -51,6 +51,13 @@ const pinIcon = () => L.divIcon({
   html: `<svg viewBox="0 0 24 30" width="28" height="36"><path d="M12 29s-9-9-9-16a9 9 0 0 1 18 0c0 7-9 16-9 16z" fill="${C.safe}" stroke="#fff" stroke-width="2"/><circle cx="12" cy="12" r="3.5" fill="#fff"/></svg>`,
 });
 
+const destIcon = () => L.divIcon({
+  className: '',
+  iconSize: [32, 40],
+  iconAnchor: [16, 38],
+  html: `<svg viewBox="0 0 24 30" width="32" height="40"><path d="M12 29s-9-9-9-16a9 9 0 0 1 18 0c0 7-9 16-9 16z" fill="${C.me}" stroke="#fff" stroke-width="2.5"/><circle cx="12" cy="12" r="3.5" fill="#fff"/></svg>`,
+});
+
 // ── Component ──────────────────────────────────────────────────────────────────
 
 export default function FloodMap({
@@ -176,7 +183,7 @@ export default function FloodMap({
     // Destination marker
     if (dest) {
       L.marker([dest.lat, dest.lng], {
-        icon: dest.kind === 'safeplace' ? safeIcon(false, true) : campIcon(false, true),
+        icon: destIcon(),
         zIndexOffset: 500,
       }).addTo(g);
     }

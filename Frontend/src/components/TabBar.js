@@ -24,7 +24,7 @@ export default function TabBar({ state, navigation }) {
   const item = (r) => {
     const i = routes.indexOf(r);
     const on = state.index === i;
-    const col = on ? C.river : C.muted;
+    const col = on ? C.action : C.textSecondary;
     return (
       <Pressable key={r.key} style={st.tab} onPress={() => navigation.navigate(r.name)} accessibilityRole="tab" accessibilityState={{ selected: on }}>
         <View>
@@ -40,8 +40,8 @@ export default function TabBar({ state, navigation }) {
     <View style={[st.bar, { paddingBottom: Math.max(insets.bottom, 6) }]}>
       {left.map(item)}
       <Pressable style={st.tab} onPress={() => navigation.navigate('Report')} accessibilityRole="button" accessibilityLabel={t('reportTitle')}>
-        <View style={st.report}><Icon name="plus" color="#fff" size={28} /></View>
-        <Text style={[st.label, { color: C.river }]}>{t('tabReport')}</Text>
+        <View style={st.report}><Icon name="plus" color={C.textOnColor} size={28} /></View>
+        <Text style={[st.label, { color: C.action }]}>{t('tabReport')}</Text>
       </Pressable>
       {right.map(item)}
     </View>
@@ -52,7 +52,7 @@ const st = StyleSheet.create({
   bar: { flexDirection: 'row', backgroundColor: C.surface, borderTopWidth: 1, borderTopColor: C.line, paddingTop: 6, paddingHorizontal: 4 },
   tab: { flex: 1, alignItems: 'center', justifyContent: 'flex-end', gap: 2, minHeight: 50 },
   label: { fontFamily: F.bodyBold, fontSize: 11.5 },
-  report: { width: 52, height: 52, borderRadius: 17, backgroundColor: C.river, alignItems: 'center', justifyContent: 'center', marginTop: -22, borderWidth: 4, borderColor: C.surface, shadowColor: C.river, shadowOpacity: 0.35, shadowRadius: 8, shadowOffset: { width: 0, height: 3 }, elevation: 6 },
+  report: { width: 52, height: 52, borderRadius: 17, backgroundColor: C.action, alignItems: 'center', justifyContent: 'center', marginTop: -22, borderWidth: 4, borderColor: C.surface, shadowColor: C.action, shadowOpacity: 0.35, shadowRadius: 8, shadowOffset: { width: 0, height: 3 }, elevation: 6 },
   badge: { position: 'absolute', top: -4, right: -9, minWidth: 17, height: 17, borderRadius: 9, backgroundColor: C.danger, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 4, borderWidth: 2, borderColor: C.surface },
-  badgeText: { fontFamily: F.bodyBold, fontSize: 10, color: '#fff', lineHeight: 12 },
+  badgeText: { fontFamily: F.bodyBold, fontSize: 10, color: C.textOnColor, lineHeight: 12 },
 });

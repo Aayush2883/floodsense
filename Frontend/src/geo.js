@@ -49,9 +49,9 @@ export function timeAgo(ts, lang = 'en') {
   const hi = lang === 'hi';
   if (s < 60) return hi ? 'अभी' : 'just now';
   const m = Math.round(s / 60);
-  if (m < 60) return hi ? `${m} मिनट` : `${m} min ago`;
+  if (m < 60) return hi ? `${m} मिनट पहले` : `${m} min ago`;
   const h = Math.round(m / 60);
-  return hi ? `${h} घंटे` : `${h} h ago`;
+  return hi ? `${h} घंटे पहले` : `${h} h ago`;
 }
 
 // same key trick as server/public/map.html: match route steps to flooded road segments

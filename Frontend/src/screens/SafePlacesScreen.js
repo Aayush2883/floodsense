@@ -11,7 +11,7 @@ import { C, F } from '../theme';
 const CAMPS = campsAsPlaces();
 
 export default function SafePlacesScreen({ navigation }) {
-  const { safePlaces, me, api, ensureAuth, refresh, floods } = useApp();
+  const { safePlaces, me, api, ensureAuth, refresh, floods, showToast } = useApp();
   const t = useT();
   const [view, setView] = useState('list');
 
@@ -22,7 +22,8 @@ export default function SafePlacesScreen({ navigation }) {
 
   function markFull(p) {
     confirm(t('markFull'), p.name, async () => {
-      try { await ensureAuth(); await api.markFull(p.nodeId); refresh(); } catch { /* ignore */ }
+      try { await ensureAuth(); await api.markFull(p.nodeId); refresh(); showToast(t('markedFull', { n: p.name }), 'info'); }
+      catch (e) { showToast(t('errorGeneric', { e: e.message }), 'error'); }
     });
   }
 
@@ -42,11 +43,11 @@ export default function SafePlacesScreen({ navigation }) {
           const camp = p.kind === 'camp';
           return (
             <View key={p.key} style={[st.place, p.isFull && { opacity: 0.5 }, i === list.length - 1 && { borderBottomWidth: 0 }]}>
-              <View style={[st.pi, { backgroundColor: p.isFull ? C.grey : camp ? C.river : C.safe }]}>
-                <Icon name={camp ? 'tent' : 'home-roof'} size={18} color="#fff" />
+              <View style={[st.pi, { backgroundColor: p.isFull ? C.inactive : camp ? C.action : C.safeMarker }]}>
+                <Icon name={camp ? 'tent' : 'home-roof'} size={18} color={C.textOnColor} />
               </View>
               <View style={{ flex: 1, gap: 1 }}>
-                <Text style={[st.tag, !camp && { color: '#7A5A00' }, p.isFull && { color: C.muted }]}>{p.isFull ? t('full') : camp ? t('verifiedCamp') : t('sharedByPeople')}</Text>
+                <Text style={[st.tag, !camp && { color: C.textSecondary }, p.isFull && { color: C.textSecondary }]}>{p.isFull ? t('full') : camp ? t('verifiedCamp') : t('sharedByPeople')}</Text>
                 <T v="smallB">{p.name}</T>
                 <T v="muted" numberOfLines={2}>{[p.notes, p.capacity ? t('roomFor', { n: p.capacity }) : null, fmtDistance(p.d)].filter(Boolean).join(' · ')}</T>
                 {!camp && !p.isFull && (
@@ -71,8 +72,8 @@ const st = StyleSheet.create({
   mapBox: { height: 260, borderRadius: 16, overflow: 'hidden', borderWidth: 1, borderColor: C.line },
   place: { flexDirection: 'row', gap: 11, paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: C.line, alignItems: 'flex-start' },
   pi: { width: 36, height: 36, borderRadius: 10, alignItems: 'center', justifyContent: 'center' },
-  tag: { fontFamily: F.bodyBold, fontSize: 10.5, letterSpacing: 0.6, textTransform: 'uppercase', color: C.river },
-  link: { fontFamily: F.bodyBold, fontSize: 12.5, color: C.muted, textDecorationLine: 'underline', marginTop: 2 },
-  routeBtn: { height: 34, paddingHorizontal: 14, borderRadius: 10, backgroundColor: C.river, alignItems: 'center', justifyContent: 'center' },
-  routeText: { fontFamily: F.bodyBold, fontSize: 13, color: '#fff' },
+  tag: { fontFamily: F.bodyBold, fontSize: 10.5, letterSpacing: 0.6, textTransform: 'uppercase', color: C.action },
+  link: { fontFamily: F.bodyBold, fontSize: 12.5, color: C.textSecondary, textDecorationLine: 'underline', marginTop: 2 },
+  routeBtn: { height: 34, paddingHorizontal: 14, borderRadius: 10, backgroundColor: C.action, alignItems: 'center', justifyContent: 'center' },
+  routeText: { fontFamily: F.bodyBold, fontSize: 13, color: C.textOnColor },
 });

@@ -23,7 +23,7 @@ On start the app checks `GET /api/health` on the FloodSense server:
 - **Server reachable** → everything is live: Bedrock reads reports, Neo4j closes roads and finds routes, the sensor watcher pushes alerts over Socket.io.
 - **Server not reachable** → the app switches to built-in demo data (`src/api/mock.js`) and shows a "Demo data" chip. Every screen still works.
 
-The server address defaults to `http://<same host>:4000` on the web and `http://localhost:4000` on a phone. To point somewhere else:
+The app finds the server by itself: on the web it uses `http://<same host>:4000`, and in Expo Go it uses the computer that is running Expo (port 4000). To point somewhere else:
 
 ```bash
 EXPO_PUBLIC_API_URL=http://192.168.1.20:4000 npx expo start

@@ -40,6 +40,10 @@ export function createLiveApi(baseUrl, getToken) {
   }
 
   return {
+    async ensureRegion(lat, lng) {
+      return req(`/api/region/ensure?lat=${encodeURIComponent(lat)}&lng=${encodeURIComponent(lng)}`);
+    },
+
     async health() {
       const d = await req('/api/health', { timeoutMs: 3000 });
       return !!d?.ok;
@@ -81,7 +85,7 @@ export function createLiveApi(baseUrl, getToken) {
     },
 
     async getAlerts() {
-      const d = await req('/api/alerts/alerts');
+      const d = await req('/api/alerts');
       return (d?.alerts || []).map((a) => ({
         id: a.alertId, kind: a.source === 'sensor' ? 'sensor' : 'report', severity: a.severity || 'DANGER',
         sensorId: a.sensorId, lat: a.lat, lng: a.lng, waterLevelCm: a.waterLevelCm, roadsFlooded: a.roadsFlooded,
@@ -90,7 +94,7 @@ export function createLiveApi(baseUrl, getToken) {
     },
 
     async getSensors() {
-      const d = await req('/api/alerts/sensors');
+      const d = await req('/api/sensors');
       return (d?.sensors || []).map((s) => ({ ...s, area: SENSOR_AREAS[s.sensorId] || s.regionCode }));
     },
 

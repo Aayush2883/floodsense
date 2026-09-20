@@ -10,7 +10,7 @@ import { C } from '../theme';
 function SettingRow({ icon, title, sub, right, last, onPress }) {
   return (
     <Row last={last} onPress={onPress}>
-      <Icon name={icon} color={C.river} size={22} />
+      <Icon name={icon} color={C.action} size={22} />
       <View style={{ flex: 1 }}>
         <T v="bodyB">{title}</T>
         {sub ? <T v="muted">{sub}</T> : null}
@@ -21,7 +21,7 @@ function SettingRow({ icon, title, sub, right, last, onPress }) {
 }
 
 export default function ProfileScreen({ navigation }) {
-  const { session, saveSession, lang, setLang, me, setMe, forceDemo, setDemo, mode, baseUrl, serverUp, reports } = useApp();
+  const { session, saveSession, lang, setLang, me, setMe, forceDemo, setDemo, mode, baseUrl, serverUp, reports, showToast } = useApp();
   const t = useT();
   const [alertsOn, setAlertsOn] = useState(true);
   const user = session?.user || {};
@@ -50,10 +50,10 @@ export default function ProfileScreen({ navigation }) {
       </View>
       <Card>
         <SettingRow icon="home-outline" title={t('home')} sub={me.label} right={<T v="link" onPress={useGps}>GPS</T>} />
-        <SettingRow icon="crosshairs-gps" title="Reset to demo location" sub={DEMO_ME.label} onPress={() => setMe(DEMO_ME)} right={<Icon name="chevron-right" color={C.muted} />} />
+        <SettingRow icon="crosshairs-gps" title="Reset to demo location" sub={DEMO_ME.label} onPress={() => { setMe(DEMO_ME); showToast(DEMO_ME.label, 'info'); }} right={<Icon name="chevron-right" color={C.textSecondary} />} />
         <SettingRow icon="translate" title={t('language')} sub={lang === 'hi' ? 'हिंदी' : 'English'} onPress={() => setLang(lang === 'hi' ? 'en' : 'hi')} right={<T v="link">{lang === 'hi' ? 'English' : 'हिंदी'}</T>} />
         <SettingRow icon="bell-outline" title={t('dangerAlerts')} sub="Push + SMS backup" right={<Toggle value={alertsOn} onChange={setAlertsOn} />} />
-        <SettingRow icon="flask-outline" title={t('demoData')} sub={t('demoDataSub')} right={<Toggle value={forceDemo} onChange={setDemo} />} />
+        <SettingRow icon="flask-outline" title={t('demoData')} sub={t('demoDataSub')} right={<Toggle value={forceDemo} onChange={(v) => { setDemo(v); showToast(v ? t('demoOn') : t('demoOff'), 'info'); }} />} />
         <SettingRow last icon="server-network" title={t('server')} sub={`${baseUrl} · ${mode === 'live' ? 'connected' : serverUp === false ? 'not reachable' : forceDemo ? 'not used' : 'checking…'}`} />
       </Card>
       <T v="muted" style={{ textAlign: 'center' }}>{lang === 'hi' ? `आपकी सूचनाएँ: ${reports.length}` : `Reports on the map: ${reports.length}`}</T>

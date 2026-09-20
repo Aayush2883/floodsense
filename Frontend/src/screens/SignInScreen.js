@@ -31,7 +31,7 @@ export default function SignInScreen() {
   return (
     <Screen contentStyle={{ gap: 14, paddingTop: 48 }}>
       <View style={st.brand}>
-        <View style={st.mark}><Icon name="waves" size={26} color="#fff" /></View>
+        <View style={st.mark}><Icon name="waves" size={26} color={C.textOnColor} /></View>
         <View>
           <Text style={st.wm}>FloodSense</Text>
           <T v="muted">{t('tagline')}</T>
@@ -42,25 +42,27 @@ export default function SignInScreen() {
       <View style={st.langs}>
         {[['hi', 'हिंदी'], ['en', 'English']].map(([k, label]) => (
           <Pressable key={k} onPress={() => setLang(k)} style={[st.lang, lang === k && st.langOn]} accessibilityRole="radio" accessibilityState={{ checked: lang === k }}>
-            <Text style={[st.langText, lang === k && { color: C.river }]}>{label}</Text>
+            <Text style={[st.langText, lang === k && { color: C.action }]}>{label}</Text>
           </Pressable>
         ))}
+      </View>
+
+      <Btn icon="map-outline" title={t('guestCta')} onPress={() => run('guest')} loading={busy === 'guest'} style={{ height: 58, marginTop: 6 }} />
+      <T v="muted" style={{ textAlign: 'center' }}>{t('guestSub')}</T>
+
+      <View style={st.divider}>
+        <View style={st.rule} />
+        <T v="muted">{t('orSignIn')}</T>
+        <View style={st.rule} />
       </View>
 
       {creating && <Field label={t('name')} value={name} onChangeText={setName} autoComplete="name" />}
       <Field label={t('email')} value={email} onChangeText={setEmail} autoCapitalize="none" keyboardType="email-address" autoComplete="email" />
       <Field label={t('password')} value={password} onChangeText={setPassword} secureTextEntry autoComplete="password" onSubmitEditing={() => run('account')} />
       {err ? <Banner>{err}</Banner> : null}
-      <Btn title={creating ? t('createAccount') : t('signIn')} onPress={() => run('account')} loading={busy === 'account'} disabled={!email || !password} />
-      <Btn kind="outline" title={creating ? t('haveAccount') : t('createAccount')} onPress={() => { setCreating(!creating); setErr(''); }} />
-
-      <Pressable onPress={() => run('guest')} style={st.guest} accessibilityRole="button">
-        <Icon name="map-outline" size={24} color={C.river} />
-        <View style={{ flex: 1 }}>
-          <T v="bodyB">{t('guestTitle')}</T>
-          <T v="muted">{t('guestSub')}</T>
-        </View>
-        {busy === 'guest' ? <T v="muted">…</T> : <Icon name="chevron-right" size={24} color={C.river} />}
+      <Btn kind="outline" title={creating ? t('createAccount') : t('signIn')} onPress={() => run('account')} loading={busy === 'account'} disabled={!email || !password} />
+      <Pressable onPress={() => { setCreating(!creating); setErr(''); }} hitSlop={8} style={{ alignSelf: 'center', padding: 6 }}>
+        <Text style={st.switch}>{creating ? t('haveAccount') : t('noAccount')}</Text>
       </Pressable>
       <T v="muted" style={{ textAlign: 'center', fontSize: 12 }}>{mode === 'demo' ? 'Server offline · using demo data' : mode === 'live' ? 'Connected to FloodSense server' : 'Checking server…'}</T>
     </Screen>
@@ -69,11 +71,13 @@ export default function SignInScreen() {
 
 const st = StyleSheet.create({
   brand: { flexDirection: 'row', alignItems: 'center', gap: 12 },
-  mark: { width: 52, height: 52, borderRadius: 15, backgroundColor: C.river, alignItems: 'center', justifyContent: 'center' },
-  wm: { fontFamily: F.displayHeavy, fontSize: 32, lineHeight: 36, color: C.ink },
+  mark: { width: 52, height: 52, borderRadius: 15, backgroundColor: C.action, alignItems: 'center', justifyContent: 'center' },
+  wm: { fontFamily: F.displayHeavy, fontSize: 32, lineHeight: 36, color: C.text },
   langs: { flexDirection: 'row', gap: 8 },
   lang: { flex: 1, height: 50, borderRadius: 14, borderWidth: 1.5, borderColor: C.line, backgroundColor: C.surface, alignItems: 'center', justifyContent: 'center' },
-  langOn: { borderColor: C.river, backgroundColor: C.riverSoft },
-  langText: { fontFamily: F.bodyBold, fontSize: 17, color: C.ink },
-  guest: { marginTop: 10, flexDirection: 'row', alignItems: 'center', gap: 12, backgroundColor: '#E8F1EF', borderColor: '#CFE2DE', borderWidth: 1, borderRadius: 16, padding: 14 },
+  langOn: { borderColor: C.action, backgroundColor: C.actionSoft },
+  langText: { fontFamily: F.bodyBold, fontSize: 17, color: C.text },
+  divider: { flexDirection: 'row', alignItems: 'center', gap: 10, marginVertical: 4 },
+  rule: { flex: 1, height: 1, backgroundColor: C.line },
+  switch: { fontFamily: F.bodyBold, fontSize: 14, color: C.action },
 });

@@ -1,11 +1,11 @@
 import React, { useMemo } from 'react';
-import { RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Pressable, RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Btn, Card, Chip, Header, Sev, T } from '../components/ui';
+import { Btn, Card, Chip, Header, Icon, Sev, T } from '../components/ui';
 import { useApp, useT } from '../state/AppState';
 import { alertSpeech, speak } from '../actions';
 import { haversine, fmtDistance, timeAgo } from '../geo';
-import { C, F, SEVERITY, SENSOR_DANGER_CM, SENSOR_WARN_CM } from '../theme';
+import { C, F, severityColor, SENSOR_DANGER_CM, SENSOR_WARN_CM } from '../theme';
 
 const SCALE_MAX = 200; // cm shown on the sensor bars
 
@@ -29,8 +29,8 @@ export default function AlertsScreen({ navigation }) {
     <ScrollView style={{ flex: 1, backgroundColor: C.ground }} contentContainerStyle={{ paddingTop: insets.top + 8, paddingHorizontal: 16, paddingBottom: 30, gap: 12 }}
       refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}>
       <View style={st.between}>
-        <Header title={t('alerts')} sub={lang === 'hi' ? 'Alerts · लाइव' : 'चेतावनी · live'} />
-        <Chip icon="circle" color={mode === 'live' ? C.safe : C.warn} label={mode === 'live' ? t('live') : t('demoData')} />
+        <Header title={t('alerts')} sub={t('alertsSub')} />
+        <Chip icon={mode === 'live' ? 'access-point' : 'wifi-off'} color={mode === 'live' ? C.textSecondary : C.warningText} label={mode === 'live' ? t('live') : t('demoData')} />
       </View>
 
       {feed.length === 0 && <T v="muted">{t('noAlerts')}</T>}
@@ -46,12 +46,16 @@ export default function AlertsScreen({ navigation }) {
               </View>
               <Text style={st.time}>{timeAgo(a.ts, lang)}{dist != null ? ` · ${fmtDistance(dist)}` : ''}</Text>
             </View>
-            <T v="bodyB">{a.title}</T>
-            {a.sub ? <T v="muted">{a.sub}</T> : null}
-            <View style={{ flexDirection: 'row', gap: 8 }}>
-              <Btn small kind="outline" icon="volume-high" title={t('readAloud')} style={{ flex: 1 }} onPress={() => speak(alertSpeech(a, lang), lang)} />
-              {danger && <Btn small kind="safe" icon="navigation-variant" title={t('getToSafety')} style={{ flex: 1 }} onPress={() => navigation.navigate('Route', { target: 'camp' })} />}
+            <View style={{ flexDirection: 'row', gap: 10, alignItems: 'flex-start' }}>
+              <View style={{ flex: 1, gap: 3 }}>
+                <T v="bodyB">{a.title}</T>
+                {a.sub ? <T v="muted">{a.sub}</T> : null}
+              </View>
+              <Pressable onPress={() => speak(alertSpeech(a, lang), lang)} style={st.speak} accessibilityRole="button" accessibilityLabel={t('readAloud')} hitSlop={6}>
+                <Icon name="volume-high" size={20} color={C.action} />
+              </Pressable>
             </View>
+            {danger && <Btn small kind="primary" icon="navigation-variant" title={t('getToSafety')} onPress={() => navigation.navigate('Route', { target: 'camp' })} />}
           </View>
         );
       })}
@@ -62,7 +66,7 @@ export default function AlertsScreen({ navigation }) {
       </View>
       <Card>
         {sensors.map((s, i) => {
-          const col = SEVERITY[s.alert]?.color || C.grey;
+          const col = severityColor(s.alert);
           return (
             <View key={s.sensorId} style={[st.sensor, i === sensors.length - 1 && { borderBottomWidth: 0 }]}>
               <View style={st.between}>
@@ -90,12 +94,13 @@ export default function AlertsScreen({ navigation }) {
 const st = StyleSheet.create({
   between: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 8 },
   card: { backgroundColor: C.surface, borderRadius: 16, borderWidth: 1, borderColor: C.line, padding: 12, gap: 7 },
-  cardDanger: { borderColor: '#EDB3BA', borderLeftWidth: 4, borderLeftColor: C.danger },
-  kind: { fontFamily: F.bodyBold, fontSize: 10.5, letterSpacing: 0.8, color: C.muted },
-  time: { fontFamily: F.mono, fontSize: 11.5, color: C.muted },
+  cardDanger: { borderColor: C.dangerBorder, borderLeftWidth: 4, borderLeftColor: C.danger },
+  kind: { fontFamily: F.bodyBold, fontSize: 10.5, letterSpacing: 0.8, color: C.textSecondary },
+  speak: { width: 40, height: 40, borderRadius: 20, backgroundColor: C.actionSoft, alignItems: 'center', justifyContent: 'center' },
+  time: { fontFamily: F.mono, fontSize: 11.5, color: C.textSecondary },
   sensor: { paddingVertical: 11, gap: 8, borderBottomWidth: 1, borderBottomColor: C.line },
-  cm: { fontFamily: F.monoBold, fontSize: 14, color: C.ink },
+  cm: { fontFamily: F.monoBold, fontSize: 14, color: C.text },
   bar: { height: 9, borderRadius: 5, backgroundColor: C.fill, overflow: 'visible' },
   fill: { position: 'absolute', left: 0, top: 0, bottom: 0, borderRadius: 5 },
-  tick: { position: 'absolute', top: -3, bottom: -3, width: 2, backgroundColor: '#8C9A9C' },
+  tick: { position: 'absolute', top: -3, bottom: -3, width: 2, backgroundColor: C.inactive },
 });

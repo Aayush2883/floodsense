@@ -24,13 +24,14 @@ export default function ReportResultScreen({ navigation }) {
   if (!r) return null;
   const x = r.extracted || {};
   const at = r.at || me;
-  const radius = SEVERITY[x.severity]?.radiusM || 250;
-  const d = radius / 111000;
+  // show the closed area with some streets around it, not just a red circle
+  const radius = Math.max(SEVERITY[x.severity]?.radiusM || 0, 400);
+  const d = (radius * 1.8) / 111000;
   const fit = [{ lat: at.lat - d, lng: at.lng - d }, { lat: at.lat + d, lng: at.lng + d }];
 
   return (
     <View style={{ flex: 1, backgroundColor: C.ground }}>
-      <FloodMap segments={floods.segments} zones={floods.zones} center={at} zoom={15} fitTo={fit} fitPadding={{ top: 70, bottom: 420 }} me={me} />
+      <FloodMap segments={floods.segments} zones={floods.zones} center={at} zoom={15} fitTo={fit} fitPadding={{ top: 60, bottom: 380 }} me={me} />
       <View style={[st.chip, { top: insets.top + 12 }]}>
         <Chip float icon="waves" color={C.danger} label={lang === 'hi' ? 'नक्शा अभी अपडेट हुआ' : 'Map updated just now'} />
       </View>
@@ -65,11 +66,11 @@ export default function ReportResultScreen({ navigation }) {
 
 const st = StyleSheet.create({
   chip: { position: 'absolute', left: 0, right: 0, alignItems: 'center' },
-  sheet: { position: 'absolute', left: 0, right: 0, bottom: 0, backgroundColor: C.surface, borderTopLeftRadius: 24, borderTopRightRadius: 24, paddingHorizontal: 16, paddingTop: 10, gap: 11, shadowColor: '#0F1E24', shadowOpacity: 0.16, shadowRadius: 20, elevation: 10 },
+  sheet: { position: 'absolute', left: 0, right: 0, bottom: 0, backgroundColor: C.surface, borderTopLeftRadius: 24, borderTopRightRadius: 24, paddingHorizontal: 16, paddingTop: 10, gap: 11, shadowColor: C.shadow, shadowOpacity: 0.16, shadowRadius: 20, elevation: 10 },
   grab: { alignSelf: 'center', width: 38, height: 4, borderRadius: 2, backgroundColor: C.line },
   between: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   facts: { flexDirection: 'row', flexWrap: 'wrap', borderWidth: 1, borderColor: C.line, borderRadius: 12, overflow: 'hidden' },
   fact: { width: '50%', paddingHorizontal: 10, paddingVertical: 8, borderColor: C.line, borderRightWidth: 0.5, borderBottomWidth: 0.5 },
-  fk: { fontFamily: F.bodyBold, fontSize: 10.5, letterSpacing: 0.6, textTransform: 'uppercase', color: C.muted },
-  fv: { fontFamily: F.bodySemi, fontSize: 14, color: C.ink },
+  fk: { fontFamily: F.bodyBold, fontSize: 10.5, letterSpacing: 0.6, textTransform: 'uppercase', color: C.textSecondary },
+  fv: { fontFamily: F.bodySemi, fontSize: 14, color: C.text },
 });

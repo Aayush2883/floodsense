@@ -6,7 +6,7 @@ const crypto = require('crypto');
 const r = Router();
 
 r.post('/', requireAuth, async (req, res) => {
-  const { name, capacity, contact, lat, lng, notes, type } = req.body;
+  const { name, label, capacity, contact, lat, lng, notes, type } = req.body;
   if (!name || !lat || !lng) {
     return res.status(400).json({ error: 'name-lat-lng-required' });
   }
@@ -15,26 +15,29 @@ r.post('/', requireAuth, async (req, res) => {
   try {
     const nodeId = `safe_${crypto.randomUUID ? crypto.randomUUID() : Date.now()}`;
     
+    const finalNotes = [label, notes].filter(Boolean).join(' - ') || 'High ground safe location';
     await s.run(
-      `CREATE (n:SafePlace {
-        nodeId: $nodeId,
-        name: $name,
-        type: $type,
-        capacity: $capacity,
-        contact: $contact,
-        notes: $notes,
-        point: point({latitude: $lat, longitude: $lng, srid: 4326}),
-        isFull: false,
-        createdBy: $uid,
-        createdAt: timestamp()
-      }) RETURN n`,
+      `MERGE (n:SafePlace { nodeId: $nodeId })
+       ON CREATE SET
+        n.name = $name,
+        n.label = $label,
+        n.type = $type,
+        n.capacity = $capacity,
+        n.contact = $contact,
+        n.notes = $notes,
+        n.point = point({latitude: $lat, longitude: $lng, srid: 4326}),
+        n.isFull = false,
+        n.createdBy = $uid,
+        n.createdAt = timestamp()
+       RETURN n`,
       {
         nodeId,
         name,
+        label: label || '',
         type: type || 'building',
         capacity: Number(capacity) || 30,
         contact: contact || '',
-        notes: notes || 'High ground safe location',
+        notes: finalNotes,
         lat: Number(lat),
         lng: Number(lng),
         uid: req.user?.uid || 'anonymous'

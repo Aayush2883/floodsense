@@ -72,7 +72,7 @@ export default function RouteScreen({ navigation, route: nav }) {
         </Pressable>
         {res && (
           <View style={st.topCard}>
-            <Icon name={res.dest.kind === 'safeplace' ? 'home-roof' : 'tent'} color={C.river} size={24} />
+            <Icon name={res.dest.kind === 'safeplace' ? 'home-roof' : 'tent'} color={C.action} size={24} />
             <View style={{ flex: 1 }}>
               <T v="smallB" numberOfLines={1}>{res.dest.name}</T>
               <T v="muted">{res.dest.kind === 'safeplace' ? t('safePlace') : t('reliefCamp')}{res.dest.capacity ? ` · ${t('roomFor', { n: res.dest.capacity })}` : ''}</T>
@@ -85,7 +85,7 @@ export default function RouteScreen({ navigation, route: nav }) {
         <View style={st.grab} />
         {!res && !err && (
           <View style={{ alignItems: 'center', gap: 10, paddingVertical: 24 }}>
-            <ActivityIndicator color={C.river} size="large" />
+            <ActivityIndicator color={C.action} size="large" />
             <T v="muted">{t('findingRoute')}</T>
           </View>
         )}
@@ -115,7 +115,7 @@ export default function RouteScreen({ navigation, route: nav }) {
             {walking ? (
               <Banner kind="info">{lang === 'hi' ? `आप ${res.dest.name} की ओर जा रहे हैं। हरी लाइन पर चलें। पानी में न उतरें।` : `On your way to ${res.dest.name}. Stay on the green line. Do not walk into water.`}</Banner>
             ) : null}
-            <Btn kind="safe" icon={walking ? 'check' : 'walk'} title={walking ? (lang === 'hi' ? 'मैं पहुँच गया' : "I've arrived") : t('startWalking')}
+            <Btn kind="primary" icon={walking ? 'check' : 'walk'} title={walking ? (lang === 'hi' ? 'मैं पहुँच गया' : "I've arrived") : t('startWalking')}
               onPress={() => (walking ? navigation.navigate('Tabs', { screen: 'Map' }) : setWalking(true))} />
             <View style={st.between}>
               <Pressable onPress={() => setPicking(true)} hitSlop={8}><Text style={st.link}>{t('otherCamps')} ({options.length})</Text></Pressable>
@@ -132,12 +132,12 @@ export default function RouteScreen({ navigation, route: nav }) {
             <ScrollView style={{ maxHeight: 260 }}>
               {options.map((p) => (
                 <Pressable key={p.id || p.nodeId} style={st.opt} onPress={() => { setPicking(false); setTarget({ target: 'place', place: p }); }}>
-                  <Icon name={p.kind === 'camp' ? 'tent' : 'home-roof'} color={p.kind === 'camp' ? C.river : C.safe} />
+                  <Icon name={p.kind === 'camp' ? 'tent' : 'home-roof'} color={p.kind === 'camp' ? C.action : C.safeMarker} />
                   <View style={{ flex: 1 }}>
                     <T v="smallB">{p.name}</T>
                     <T v="muted">{p.kind === 'camp' ? t('reliefCamp') : t('sharedByPeople')} · {fmtDistance(p.d)}</T>
                   </View>
-                  <Icon name="chevron-right" color={C.muted} />
+                  <Icon name="chevron-right" color={C.textSecondary} />
                 </Pressable>
               ))}
             </ScrollView>
@@ -150,17 +150,17 @@ export default function RouteScreen({ navigation, route: nav }) {
 
 const st = StyleSheet.create({
   top: { position: 'absolute', left: 12, right: 12, flexDirection: 'row', gap: 8, alignItems: 'center' },
-  back: { width: 44, height: 44, borderRadius: 14, backgroundColor: C.surface, alignItems: 'center', justifyContent: 'center', shadowColor: '#0F1E24', shadowOpacity: 0.18, shadowRadius: 8, elevation: 4 },
-  topCard: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: 10, backgroundColor: C.surface, borderRadius: 14, paddingHorizontal: 12, paddingVertical: 8, shadowColor: '#0F1E24', shadowOpacity: 0.18, shadowRadius: 8, elevation: 4 },
-  sheet: { position: 'absolute', left: 0, right: 0, bottom: 0, backgroundColor: C.surface, borderTopLeftRadius: 24, borderTopRightRadius: 24, paddingHorizontal: 16, paddingTop: 10, gap: 12, shadowColor: '#0F1E24', shadowOpacity: 0.16, shadowRadius: 20, elevation: 10 },
+  back: { width: 44, height: 44, borderRadius: 14, backgroundColor: C.surface, alignItems: 'center', justifyContent: 'center', shadowColor: C.shadow, shadowOpacity: 0.18, shadowRadius: 8, elevation: 4 },
+  topCard: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: 10, backgroundColor: C.surface, borderRadius: 14, paddingHorizontal: 12, paddingVertical: 8, shadowColor: C.shadow, shadowOpacity: 0.18, shadowRadius: 8, elevation: 4 },
+  sheet: { position: 'absolute', left: 0, right: 0, bottom: 0, backgroundColor: C.surface, borderTopLeftRadius: 24, borderTopRightRadius: 24, paddingHorizontal: 16, paddingTop: 10, gap: 12, shadowColor: C.shadow, shadowOpacity: 0.16, shadowRadius: 20, elevation: 10 },
   grab: { alignSelf: 'center', width: 38, height: 4, borderRadius: 2, backgroundColor: C.line },
   between: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 8 },
-  big: { fontFamily: F.displayHeavy, fontSize: 34, lineHeight: 38, color: C.ink },
+  big: { fontFamily: F.displayHeavy, fontSize: 34, lineHeight: 38, color: C.text },
   cmp: { flexDirection: 'row', alignItems: 'center', gap: 10 },
   line: { width: 26, height: 5, borderRadius: 3 },
   dash: { width: 26, flexDirection: 'row', gap: 3 },
-  dashBit: { flex: 1, height: 4, borderRadius: 2, backgroundColor: '#5E6F72' },
-  cmpText: { fontFamily: F.body, fontSize: 14, color: C.ink, flex: 1 },
-  link: { fontFamily: F.bodyBold, fontSize: 14, color: C.river },
+  dashBit: { flex: 1, height: 4, borderRadius: 2, backgroundColor: C.textSecondary },
+  cmpText: { fontFamily: F.body, fontSize: 14, color: C.text, flex: 1 },
+  link: { fontFamily: F.bodyBold, fontSize: 14, color: C.action },
   opt: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: C.line },
 });

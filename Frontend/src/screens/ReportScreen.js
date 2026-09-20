@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { Animated, Image, Platform, Pressable, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Animated, Image, Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 import DepthFigure from '../components/DepthFigure';
 import { Banner, Btn, Chip, Field, Header, Icon, Screen, Segmented, T } from '../components/ui';
@@ -14,13 +14,14 @@ function getRecognizer() {
 }
 
 export default function ReportScreen({ navigation }) {
-  const { api, me, lang, ensureAuth, refresh, setLastReport } = useApp();
+  const { api, me, lang, mode, ensureAuth, refresh, setLastReport, queue, queueReport, showToast } = useApp();
   const t = useT();
   const [modeTab, setModeTab] = useState('type');
   const [text, setText] = useState('');
   const [depth, setDepth] = useState(null);
   const [photo, setPhoto] = useState(null);
   const [busy, setBusy] = useState(false);
+  const [step, setStep] = useState(0);
   const [err, setErr] = useState('');
   const [listening, setListening] = useState(false);
   const [secs, setSecs] = useState(0);
@@ -71,19 +72,35 @@ export default function ReportScreen({ navigation }) {
     } catch (e) { setErr(e.message); }
   }
 
+  // what the server does with a report, shown while we wait: read (AI) → find the place → close roads
+  useEffect(() => {
+    if (!busy) { setStep(0); return undefined; }
+    const a = setTimeout(() => setStep(1), 1100);
+    const b = setTimeout(() => setStep(2), 2300);
+    return () => { clearTimeout(a); clearTimeout(b); };
+  }, [busy]);
+
   async function send() {
     const body = text.trim();
     if (!body) return;
     setBusy(true); setErr('');
     recRef.current?.stop();
+    const depthNote = depth ? ` (water level: ${depth === 'above-head' ? 'above head' : depth})` : '';
+    const payload = { text: body + depthNote, lang: lang === 'hi' ? 'hi-IN' : 'en-IN', lat: me.lat, lng: me.lng, depth };
     try {
       await ensureAuth();
-      const depthNote = depth ? ` (water level: ${depth === 'above-head' ? 'above head' : depth})` : '';
-      const res = await api.sendReport({ text: body + depthNote, lang: lang === 'hi' ? 'hi-IN' : 'en-IN', lat: me.lat, lng: me.lng, depth });
+      const res = await api.sendReport(payload);
       setLastReport({ ...res, text: body, at: res.geocoded || { lat: me.lat, lng: me.lng } });
       refresh();
       navigation.replace('ReportResult');
     } catch (e) {
+      // no connection: keep the report on the phone and send it later
+      if (mode === 'live' && (e.name === 'TypeError' || e.name === 'AbortError')) {
+        queueReport(payload);
+        showToast(t('queuedToast'), 'warn');
+        navigation.goBack();
+        return;
+      }
       setErr(t('errorGeneric', { e: e.message }));
     } finally { setBusy(false); }
   }
@@ -108,8 +125,8 @@ export default function ReportScreen({ navigation }) {
           <View style={st.speak}>
             <Text style={st.timer}>{`0:${String(secs).padStart(2, '0')}`}</Text>
             <Pressable onPress={toggleListen} accessibilityRole="button" accessibilityLabel={listening ? 'Stop' : 'Start speaking'}>
-              <Animated.View style={[st.micBtn, listening && { backgroundColor: C.danger, transform: [{ scale }] }]}>
-                {listening ? <View style={st.stop} /> : <Icon name="microphone" size={38} color="#fff" />}
+              <Animated.View style={[st.micBtn, listening && { backgroundColor: C.action, transform: [{ scale }] }]}>
+                {listening ? <View style={st.stop} /> : <Icon name="microphone" size={38} color={C.textOnColor} />}
               </Animated.View>
             </Pressable>
             <T v="muted">{listening ? t('listening') : t('tapToSpeak')}</T>
@@ -142,14 +159,14 @@ export default function ReportScreen({ navigation }) {
           {DEPTHS.map(([k, d]) => (
             <Pressable key={k} onPress={() => setDepth(depth === d ? null : d)} style={[st.dp, depth === d && st.dpOn]} accessibilityRole="radio" accessibilityState={{ checked: depth === d }}>
               <DepthFigure depth={d} width={22} />
-              <Text style={[st.dpText, depth === d && { color: C.river }]}>{t(k)}</Text>
+              <Text style={[st.dpText, depth === d && { color: C.action }]}>{t(k)}</Text>
             </Pressable>
           ))}
         </View>
       </View>
 
       <View style={st.loc}>
-        <Icon name="map-marker-outline" color={C.river} />
+        <Icon name="map-marker-outline" color={C.location} />
         <View style={{ flex: 1 }}>
           <T v="smallB">{me.label}</T>
           <T v="muted">{t('fromGps')} · {me.lat.toFixed(4)}, {me.lng.toFixed(4)}</T>
@@ -157,21 +174,36 @@ export default function ReportScreen({ navigation }) {
       </View>
 
       {err ? <Banner>{err}</Banner> : null}
-      <T v="muted" style={{ textAlign: 'center', fontSize: 12 }}>{busy ? t('sending') : t('offlineNote')}</T>
-      <Btn title={t('sendReport')} icon="send" onPress={send} loading={busy} disabled={!text.trim()} />
+      {queue.length > 0 && !busy ? <Banner kind="warn">{t('queuedCount', { n: queue.length })}</Banner> : null}
+      {busy ? (
+        <View style={st.steps} accessibilityLiveRegion="polite">
+          {['stepRead', 'stepPlace', 'stepRoads'].map((k, i) => (
+            <View key={k} style={st.stepRow}>
+              {i < step ? <Icon name="check-circle" size={20} color={C.action} />
+                : i === step ? <ActivityIndicator size="small" color={C.action} />
+                  : <Icon name="circle-outline" size={20} color={C.line} />}
+              <Text style={[st.stepText, i > step && { color: C.textSecondary }]}>{t(k)}</Text>
+            </View>
+          ))}
+        </View>
+      ) : <T v="muted" style={{ textAlign: 'center', fontSize: 12 }}>{t('offlineNote')}</T>}
+      <Btn title={busy ? t('sending') : t('sendReport')} icon="send" onPress={send} disabled={!text.trim() || busy} />
     </Screen>
   );
 }
 
 const st = StyleSheet.create({
   speak: { alignItems: 'center', gap: 10, paddingVertical: 8 },
-  timer: { fontFamily: F.monoBold, fontSize: 18, color: C.ink },
-  micBtn: { width: 92, height: 92, borderRadius: 46, backgroundColor: C.river, alignItems: 'center', justifyContent: 'center', shadowColor: C.danger, shadowOpacity: 0.3, shadowRadius: 14, elevation: 4 },
-  stop: { width: 28, height: 28, borderRadius: 6, backgroundColor: '#fff' },
+  timer: { fontFamily: F.monoBold, fontSize: 18, color: C.text },
+  micBtn: { width: 92, height: 92, borderRadius: 46, backgroundColor: C.action, alignItems: 'center', justifyContent: 'center', shadowColor: C.shadow, shadowOpacity: 0.3, shadowRadius: 14, elevation: 4 },
+  stop: { width: 28, height: 28, borderRadius: 6, backgroundColor: C.white },
   photo: { width: '100%', height: 170, borderRadius: 14, backgroundColor: C.fill },
   depths: { flexDirection: 'row', gap: 6, marginTop: 8 },
   dp: { flex: 1, alignItems: 'center', gap: 3, paddingVertical: 7, borderRadius: 12, borderWidth: 1.5, borderColor: 'transparent', backgroundColor: C.surface },
-  dpOn: { borderColor: C.river, backgroundColor: C.riverSoft },
-  dpText: { fontFamily: F.bodySemi, fontSize: 12, color: C.ink },
+  dpOn: { borderColor: C.action, backgroundColor: C.actionSoft },
+  dpText: { fontFamily: F.bodySemi, fontSize: 12, color: C.text },
+  steps: { backgroundColor: C.surface, borderRadius: 14, borderWidth: 1, borderColor: C.line, padding: 12, gap: 10 },
+  stepRow: { flexDirection: 'row', alignItems: 'center', gap: 10, minHeight: 22 },
+  stepText: { fontFamily: F.bodySemi, fontSize: 14, color: C.text },
   loc: { flexDirection: 'row', alignItems: 'center', gap: 10, backgroundColor: C.surface, borderRadius: 14, borderWidth: 1, borderColor: C.line, padding: 12 },
 });

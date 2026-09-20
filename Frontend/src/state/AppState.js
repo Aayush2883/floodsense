@@ -1,11 +1,14 @@
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import { Platform } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import Constants from 'expo-constants';
 import { io } from 'socket.io-client';
 import { createLiveApi, zonesFrom } from '../api/live';
 import { mockApi } from '../api/mock';
 import { DEMO_ME } from '../data/places';
 import { haversine } from '../geo';
+import * as Location from 'expo-location';
+import { nearLabel } from '../actions';
 import { translate } from '../i18n';
 
 const Ctx = createContext(null);
@@ -18,6 +21,9 @@ export const useT = () => {
 function defaultBaseUrl() {
   if (process.env.EXPO_PUBLIC_API_URL) return process.env.EXPO_PUBLIC_API_URL;
   if (Platform.OS === 'web' && typeof window !== 'undefined') return `${window.location.protocol}//${window.location.hostname}:4000`;
+  // Expo Go on a phone: the server runs on the same computer as Metro, so reuse that address
+  const host = Constants.expoConfig?.hostUri?.split(':')[0];
+  if (host) return `http://${host}:4000`;
   return 'http://localhost:4000';
 }
 
@@ -34,6 +40,8 @@ const DEMO_FAMILY = [
 
 export function AppProvider({ children }) {
   const [ready, setReady] = useState(false);
+  const [regionReady, setRegionReady] = useState(false);
+  const [mappingStatus, setMappingStatus] = useState('Mapping your area…');
   const [lang, setLangState] = useState('en');
   const [session, setSession] = useState(null); // { token, user, guest }
   const [forceDemo, setForceDemo] = useState(false);
@@ -49,6 +57,8 @@ export function AppProvider({ children }) {
   const [banner, setBanner] = useState(null);
   const [updatedAt, setUpdatedAt] = useState(null);
   const [lastReport, setLastReport] = useState(null);
+  const [toast, setToast] = useState(null);
+  const [queue, setQueue] = useState([]); // reports waiting for a connection
 
   const tokenRef = useRef(null);
   tokenRef.current = session?.token ?? null;
@@ -63,6 +73,7 @@ export function AppProvider({ children }) {
       setSession(await load('fs_session', null));
       setForceDemo(await load('fs_demo', false));
       setFamily(await load('fs_family', DEMO_FAMILY));
+      setQueue(await load('fs_queue', []));
       setReady(true);
       try { setServerUp(await createLiveApi(baseUrl, () => null).health()); } catch { setServerUp(false); }
     })();
@@ -72,6 +83,57 @@ export function AppProvider({ children }) {
   const setDemo = (v) => { setForceDemo(v); save('fs_demo', v); };
   const saveSession = (s) => { setSession(s); save('fs_session', s); };
   const saveFamily = (f) => { setFamily(f); save('fs_family', f); };
+  const saveQueue = (q) => { setQueue(q); save('fs_queue', q); };
+
+  const showToast = useCallback((message, kind = 'ok') => setToast({ message, kind, ts: Date.now() }), []);
+
+  // "No signal? We keep it and send it later": reports that failed to reach the server wait here
+  const queueReport = useCallback((payload) => {
+    setQueue((q) => { const next = [...q, { ...payload, queuedAt: Date.now() }]; save('fs_queue', next); return next; });
+  }, []);
+
+
+  // ---- On boot: get GPS coordinates, ensure region roads are ingested ----
+  useEffect(() => {
+    let cancelled = false;
+    async function initRegion() {
+      if (!ready || mode === 'checking') return;
+      if (mode === 'demo') {
+        setRegionReady(true);
+        return;
+      }
+      setMappingStatus('Acquiring GPS location...');
+      let coords = { lat: me.lat, lng: me.lng };
+      try {
+        const { status } = await Location.requestForegroundPermissionsAsync();
+        if (status === 'granted') {
+          const loc = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
+          if (loc?.coords) {
+            coords = { lat: loc.coords.latitude, lng: loc.coords.longitude };
+            if (!cancelled) {
+              setMe({ ...coords, label: nearLabel(coords) });
+            }
+          }
+        }
+      } catch (e) {
+        console.warn('[AppState] GPS location error:', e);
+      }
+
+      setMappingStatus('Mapping your area…');
+      try {
+        await api.ensureRegion(coords.lat, coords.lng);
+      } catch (err) {
+        console.warn('[AppState] ensureRegion error:', err);
+      } finally {
+        if (!cancelled) {
+          setRegionReady(true);
+        }
+      }
+    }
+
+    initRegion();
+    return () => { cancelled = true; };
+  }, [ready, mode, baseUrl]);
 
   // demo tokens don't work on the real server and vice versa
   const ensureAuth = useCallback(async () => {
@@ -85,8 +147,25 @@ export function AppProvider({ children }) {
   }, [api, mode, session]);
 
   // ---- data ----
+  const flushing = useRef(false);
+  const flushQueue = useCallback(async () => {
+    if (mode !== 'live' || !queue.length || flushing.current) return;
+    flushing.current = true;
+    const left = [];
+    for (const item of queue) {
+      try { await api.sendReport(item); } catch { left.push(item); }
+    }
+    flushing.current = false;
+    if (left.length < queue.length) {
+      saveQueue(left);
+      showToast(lang === 'hi' ? 'रुकी हुई सूचना भेज दी गई' : 'Waiting report sent');
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [api, mode, queue, lang, showToast]);
+
   const refresh = useCallback(async () => {
     if (mode === 'checking') return;
+    flushQueue();
     const [f, a, r, s, p] = await Promise.allSettled([
       api.getFloods(), api.getAlerts(), api.getReports(), api.getSensors(), api.getSafePlaces(me),
     ]);
@@ -101,7 +180,7 @@ export function AppProvider({ children }) {
     if (s.status === 'fulfilled') setSensors(s.value);
     if (p.status === 'fulfilled') setSafePlaces(p.value);
     setUpdatedAt(Date.now());
-  }, [api, mode, me]);
+  }, [api, mode, me, flushQueue]);
 
   useEffect(() => { refresh(); }, [refresh]);
 
@@ -150,9 +229,10 @@ export function AppProvider({ children }) {
   }).sort((a, b) => (a.status === 'DANGER' ? -1 : 0) - (b.status === 'DANGER' ? -1 : 0)), [family, floods.zones]);
 
   const value = {
-    ready, lang, setLang, session, saveSession, ensureAuth, mode, forceDemo, setDemo, serverUp, baseUrl, api,
+    ready, regionReady, setRegionReady, mappingStatus, lang, setLang, session, saveSession, ensureAuth, mode, forceDemo, setDemo, serverUp, baseUrl, api,
     me, setMe, floods, alerts, reports, sensors, safePlaces, family, saveFamily, familyStatus, nearestDanger,
     refresh, updatedAt, banner, setBanner, simulateSensor, lastReport, setLastReport,
+    toast, setToast, showToast, queue, queueReport,
   };
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
 }

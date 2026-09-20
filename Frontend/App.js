@@ -23,6 +23,7 @@ import ReportScreen from './src/screens/ReportScreen';
 import ReportResultScreen from './src/screens/ReportResultScreen';
 import RouteScreen from './src/screens/RouteScreen';
 import ShelterScreen from './src/screens/ShelterScreen';
+import NoSafeAreaScreen from './src/screens/NoSafeAreaScreen';
 import SafePlacesScreen from './src/screens/SafePlacesScreen';
 import AddSafePlaceScreen from './src/screens/AddSafePlaceScreen';
 import VolunteerScreen from './src/screens/VolunteerScreen';
@@ -45,8 +46,16 @@ function Tabs() {
 }
 
 function Root() {
-  const { ready, session } = useApp();
-  if (!ready) return <View style={st.center}><ActivityIndicator color={C.river} /></View>;
+  const { ready, regionReady, mappingStatus, session } = useApp();
+  if (!ready || !regionReady) {
+    return (
+      <View style={st.center}>
+        <ActivityIndicator color={C.river} size="large" />
+        <Text style={st.loadingText}>{mappingStatus || 'Mapping your area…'}</Text>
+        <Text style={st.loadingSub}>Analyzing roads and flood safety data for your location</Text>
+      </View>
+    );
+  }
   return (
     <View style={{ flex: 1 }}>
       <NavigationContainer ref={navRef} theme={navTheme}>
@@ -60,6 +69,7 @@ function Root() {
               <Stack.Screen name="ReportResult" component={ReportResultScreen} />
               <Stack.Screen name="Route" component={RouteScreen} />
               <Stack.Screen name="Shelter" component={ShelterScreen} />
+              <Stack.Screen name="NoSafeArea" component={NoSafeAreaScreen} />
               <Stack.Screen name="SafePlaces" component={SafePlacesScreen} />
               <Stack.Screen name="AddSafePlace" component={AddSafePlaceScreen} />
               <Stack.Screen name="Volunteer" component={VolunteerScreen} />
@@ -129,7 +139,9 @@ export default function App() {
 }
 
 const st = StyleSheet.create({
-  center: { flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: C.ground },
+  center: { flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: C.ground, padding: 24 },
+  loadingText: { marginTop: 14, fontFamily: F.bodyBold, fontSize: 17, color: C.ink },
+  loadingSub: { marginTop: 4, fontFamily: F.body, fontSize: 13, color: C.muted, textAlign: 'center', maxWidth: 260 },
   stage: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 64, backgroundColor: '#DCE5E2', padding: 24 },
   side: { width: 340, gap: 14 },
   sideEyebrow: { fontFamily: F.monoBold, fontSize: 12, letterSpacing: 1.2, color: C.river },
